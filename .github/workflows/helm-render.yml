@@ -1,0 +1,40 @@
+name: Helm chart validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deploy/helm/**"
+      - ".github/workflows/helm-render.yml"
+  pull_request:
+    paths:
+      - "deploy/helm/**"
+      - ".github/workflows/helm-render.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Lint and render MyOTA chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out deployment repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.15.4
+
+      - name: Lint chart
+        run: helm lint deploy/helm/myota --values deploy/helm/myota/values.yaml
+
+      - name: Render chart
+        run: >-
+          helm template myota deploy/helm/myota
+          --namespace myota
+          --kube-version 1.30.0
+          --values deploy/helm/myota/values.yaml
+          --set geodataPipeline.importer.enabled=true
+          --set geodataPipeline.importer.image=ghcr.io/myota-platform/myota-service:ci
