@@ -24,6 +24,16 @@ spec:
               value: {{ $.Values.auth.environment | quote }}
             - name: MYOTA_AUTH_SIGNING_KEY
               valueFrom: {secretKeyRef: {name: {{ $.Values.auth.existingSecret }}, key: signing-key}}
+            {{- if and (eq $name "geodata") $.Values.geodataPipeline.enabled }}
+            - name: GEODATA_PIPELINE_ENABLED
+              value: "true"
+            - name: GEODATA_MAX_IMPORT_FEATURES
+              value: {{ $.Values.geodataPipeline.maxImportFeatures | quote }}
+            - name: GEODATA_MAX_COORDINATES
+              value: {{ $.Values.geodataPipeline.maxCoordinates | quote }}
+            - name: GEODATA_TILE_CACHE_TTL_SECONDS
+              value: {{ $.Values.geodataPipeline.tileCacheTtlSeconds | quote }}
+            {{- end }}
             {{- if eq $name "identity" }}
             - name: MYOTA_BOOTSTRAP_ADMIN_EMAIL
               valueFrom:

@@ -17,6 +17,15 @@ services:
   programmes: {port: 8002}
   geodata: {port: 8003}
   activity: {port: 8004}
+geodataPipeline:
+  enabled: true
+  maxImportFeatures: 5000
+  maxCoordinates: 50000
+  tileCacheTtlSeconds: 60
+  importer:
+    enabled: false
+    schedule: "0 * * * *"
+    image: ghcr.io/myota-platform/myota-geodata-importer:latest
 postgres:
   host: postgis
   coreDatabase: myota_core

@@ -1,0 +1,27 @@
+{{- if .Values.geodataPipeline.importer.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: myota-geodata-importer
+spec:
+  schedule: {{ .Values.geodataPipeline.importer.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-importer}}
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: importer
+              image: {{ .Values.geodataPipeline.importer.image | quote }}
+              env:
+                - name: MYOTA_GEODATA_URL
+                  value: http://myota-geodata:8003
+                - name: MYOTA_AUTH_SIGNING_KEY
+                  valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: signing-key}}
+                - name: GEODATA_IMPORTER_SOURCE_ALLOWLIST
+                  valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: geodata-source-allowlist, optional: true}}
+{{- end }}

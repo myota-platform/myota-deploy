@@ -4,3 +4,4 @@
 4. NATS JetStream and core/geodata outbox relays are enabled by default; use `outbox.enabled=false` only for a deliberate eventless environment.
 5. Route /v1/identity, /v1/programmes, /v1/geodata and /v1/activations to the matching services if bypassing the gateway.
 6. The admin web is served by myota-admin-web; expose it beside the gateway and configure the browser API base/ingress to reach the gateway.
+7. Geodata pipeline limits are configured under `geodataPipeline`; the importer CronJob is disabled by default until a reviewed source-specific importer image and allowlist are supplied.
