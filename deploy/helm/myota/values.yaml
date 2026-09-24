@@ -6,6 +6,12 @@ gateway:
   imageRepository: ghcr.io/myota-platform/myota-gateway
   serviceType: ClusterIP
   port: 8080
+adminWeb:
+  enabled: true
+  imageRepository: ghcr.io/myota-platform/myota-admin-web
+  serviceType: ClusterIP
+  port: 8080
+  servicePort: 8090
 services:
   identity: {port: 8001}
   programmes: {port: 8002}

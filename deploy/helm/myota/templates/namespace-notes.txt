@@ -1,4 +1,6 @@
 1. Create secret {{ .Values.postgres.existingSecret }} with username, password, core-database-url, geo-database-url, and secret {{ .Values.auth.existingSecret }} with signing-key.
-2. The pre-install/pre-upgrade migration Job applies the core and geodata migrations.
-3. NATS JetStream and core/geodata outbox relays are enabled by default; use `outbox.enabled=false` only for a deliberate eventless environment.
-4. Route /v1/identity, /v1/programmes, /v1/geodata and /v1/activations to the matching services if bypassing the gateway.
+2. For first-install bootstrap, optionally add bootstrap-email and bootstrap-password keys to {{ .Values.auth.existingSecret }}; remove or rotate them after the administrator signs in. Bootstrap accepts the deployment-supplied initial password as-is; normal registration and recovery still require 12 characters.
+3. The pre-install/pre-upgrade migration Job applies the core and geodata migrations.
+4. NATS JetStream and core/geodata outbox relays are enabled by default; use `outbox.enabled=false` only for a deliberate eventless environment.
+5. Route /v1/identity, /v1/programmes, /v1/geodata and /v1/activations to the matching services if bypassing the gateway.
+6. The admin web is served by myota-admin-web; expose it beside the gateway and configure the browser API base/ingress to reach the gateway.

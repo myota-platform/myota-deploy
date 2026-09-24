@@ -25,7 +25,7 @@ python3 services/dev_server.py
 
 Open <http://127.0.0.1:8080>. The dev server starts the four services on ports 8001–8004 and proxies the browser API calls. It is intentionally dependency-free.
 
-For a containerized PostGIS environment, use `docker compose up --build` after starting Colima. The image uses the same service code with `SERVICE=identity|programmes|geodata|activity`.
+For a containerized PostGIS environment, start Colima and run `docker-compose up -d --build`. The gateway is available on `http://localhost:8080`; the authenticated administration web is available on `http://localhost:8090`. The image uses the same service code with `SERVICE=identity|programmes|geodata|activity`.
 
 ## Architecture
 
