@@ -73,6 +73,8 @@ services:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-minio
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-minio-dev-only
       MYOTA_OBJECT_STORAGE_BUCKET: myota-awards
       MYOTA_CERTIFICATE_BUCKET: myota-certificates
     depends_on: {migrations: {condition: service_completed_successfully}}

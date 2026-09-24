@@ -21,6 +21,9 @@ objectStorage:
   endpoint: http://myota-minio:9000
   awardBucket: myota-awards
   certificateBucket: myota-certificates
+  existingSecret: myota-minio-auth
+  accessKeyKey: access-key
+  secretKeyKey: secret-key
 geodataPipeline:
   enabled: true
   maxImportFeatures: 5000

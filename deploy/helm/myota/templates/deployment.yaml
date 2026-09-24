@@ -27,6 +27,10 @@ spec:
             {{- if eq $name "activity" }}
             - name: MYOTA_OBJECT_STORAGE_ENDPOINT
               value: {{ $.Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.accessKeyKey }}}}
+            - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.secretKeyKey }}}}
             - name: MYOTA_OBJECT_STORAGE_BUCKET
               value: {{ $.Values.objectStorage.awardBucket | quote }}
             - name: MYOTA_CERTIFICATE_BUCKET
