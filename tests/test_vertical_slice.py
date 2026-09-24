@@ -48,7 +48,7 @@ class VerticalSliceTests(unittest.TestCase):
 
     def test_import_is_provenance_aware_and_idempotent(self) -> None:
         body = {"programmeSlug": "regional-ota", "adapter": "OSM", "source": {"name": "OSM", "license": "ODbL 1.0"},
-                "features": [{"type": "Feature", "properties": {"name": "A reserve", "sourceRef": "osm/1", "entityType": "NATURE_RESERVE"}, "geometry": {"type": "Point", "coordinates": [2, 41]}}]}
+                "features": [{"type": "Feature", "properties": {"name": "A reserve", "sourceRef": "osm/1", "entityType": "NATURE_RESERVE", "leisure": "nature_reserve"}, "geometry": {"type": "Point", "coordinates": [2, 41]}}]}
         p = {"_body": body, "Idempotency-Key": "import-1"}
         first = GeoHandler.import_manual(None, p)
         second = GeoHandler.import_manual(None, p)

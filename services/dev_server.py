@@ -24,6 +24,7 @@ SERVICES = {
     "/v1/programmes": ("programmes", 8002, ProgrammeHandler),
     "/v1/geodata/": ("geodata", 8003, GeoHandler),
     "/v1/activations": ("activity", 8004, ActivityHandler),
+    "/v1/awards": ("activity", 8004, ActivityHandler),
 }
 
 

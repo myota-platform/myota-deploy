@@ -11,6 +11,7 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 - Geodata lifecycle: imported candidate → community proposal → approver review → approved entity.
 - Provenance-aware imports with adapter metadata for ParkServe, OSM, government GIS and manual proposals.
 - Activation and QSO primitives with idempotency keys and audit events.
+- Programme-owned hunter/activator awards, nested conditions, achievement levels, asset metadata and issuance requests are served by the activity service on the same port (8004).
 - Universal themed frontend with verified/candidate map distinction.
 - OpenAPI and event contracts, ADRs, migration notes, health endpoints and local deployment manifests.
 
@@ -23,9 +24,9 @@ python3 -m unittest discover -s tests -v
 python3 services/dev_server.py
 ```
 
-Open <http://127.0.0.1:8080>. The dev server starts the four services on ports 8001–8004 and proxies the browser API calls. It is intentionally dependency-free.
+Open <http://127.0.0.1:8080>. The dev server starts the four services on ports 8001–8004 and proxies the browser API calls. Activations and awards intentionally share the activity service on port 8004; there is no standalone awards port. It is intentionally dependency-free.
 
-For a containerized PostGIS environment, start Colima and run `docker-compose up -d --build`. The gateway is available on `http://localhost:8080`; the authenticated administration web is available on `http://localhost:8090`. The image uses the same service code with `SERVICE=identity|programmes|geodata|activity`.
+For a containerized PostGIS environment, start Colima and run `docker-compose up -d --build`. The gateway is available on `http://localhost:8080`; the authenticated administration web is available on `http://localhost:8090`; MinIO is available on `http://localhost:9001` for local asset administration. The image uses the same service code with `SERVICE=identity|programmes|geodata|activity`.
 
 ## Architecture
 

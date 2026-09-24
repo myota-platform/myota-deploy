@@ -72,6 +72,9 @@ services:
       SERVICE: activity
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      MYOTA_OBJECT_STORAGE_BUCKET: myota-awards
+      MYOTA_CERTIFICATE_BUCKET: myota-certificates
     depends_on: {migrations: {condition: service_completed_successfully}}
     ports: ["8004:8004"]
   gateway:
@@ -93,6 +96,19 @@ services:
     command: ["-js", "-sd", "/data"]
     volumes: ["nats-data:/data"]
     ports: ["4222:4222"]
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: myota-minio
+      MINIO_ROOT_PASSWORD: myota-minio-dev-only
+    volumes: ["minio-data:/data"]
+    ports: ["9000:9000", "9001:9001"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   outbox-core:
     build: .
     command: ["python3", "services/outbox_worker.py"]
@@ -112,3 +128,4 @@ services:
 volumes:
   postgis-data:
   nats-data:
+  minio-data:

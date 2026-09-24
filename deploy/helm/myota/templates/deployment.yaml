@@ -24,6 +24,14 @@ spec:
               value: {{ $.Values.auth.environment | quote }}
             - name: MYOTA_AUTH_SIGNING_KEY
               valueFrom: {secretKeyRef: {name: {{ $.Values.auth.existingSecret }}, key: signing-key}}
+            {{- if eq $name "activity" }}
+            - name: MYOTA_OBJECT_STORAGE_ENDPOINT
+              value: {{ $.Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_OBJECT_STORAGE_BUCKET
+              value: {{ $.Values.objectStorage.awardBucket | quote }}
+            - name: MYOTA_CERTIFICATE_BUCKET
+              value: {{ $.Values.objectStorage.certificateBucket | quote }}
+            {{- end }}
             {{- if and (eq $name "geodata") $.Values.geodataPipeline.enabled }}
             - name: GEODATA_PIPELINE_ENABLED
               value: "true"
