@@ -17,6 +17,7 @@ spec:
           containers:
             - name: importer
               image: {{ .Values.geodataPipeline.importer.image | quote }}
+              command: ["python3", "services/geodata_importer.py"]
               env:
                 - name: MYOTA_GEODATA_URL
                   value: http://myota-geodata:8003
@@ -24,4 +25,6 @@ spec:
                   valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: signing-key}}
                 - name: GEODATA_IMPORTER_SOURCE_ALLOWLIST
                   valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: geodata-source-allowlist, optional: true}}
+                - name: GEODATA_IMPORT_SPEC
+                  valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: geodata-import-spec, optional: true}}
 {{- end }}

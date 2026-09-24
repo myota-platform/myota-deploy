@@ -25,7 +25,7 @@ geodataPipeline:
   importer:
     enabled: false
     schedule: "0 * * * *"
-    image: ghcr.io/myota-platform/myota-geodata-importer:latest
+    image: ghcr.io/myota-platform/myota-service:latest
 postgres:
   host: postgis
   coreDatabase: myota_core
