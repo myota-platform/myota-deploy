@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
+sys.path.insert(0, str(Path(__file__).parents[1] / "services"))
 
 from awards import AwardsHandler, evaluate_condition
 
