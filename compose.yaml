@@ -77,8 +77,31 @@ services:
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-minio-dev-only
       MYOTA_OBJECT_STORAGE_BUCKET: myota-awards
       MYOTA_CERTIFICATE_BUCKET: myota-certificates
+      MYOTA_ACTIVITY_DB_POOL_MAX: "12"
+      MYOTA_HTTP_MAX_WORKERS: "64"
     depends_on: {migrations: {condition: service_completed_successfully}}
     ports: ["8004:8004"]
+  activity-worker:
+    build: .
+    command: ["python3", "services/activity_worker.py"]
+    environment:
+      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-minio
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-minio-dev-only
+      MYOTA_ADIF_BUCKET: myota-adif
+      MYOTA_CERTIFICATE_BUCKET: myota-certificates
+      MYOTA_ACTIVITY_DB_POOL_MAX: "4"
+    depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}, minio: {condition: service_started}}
+  activity-notifications:
+    build: .
+    command: ["python3", "services/activity_notification_consumer.py"]
+    environment:
+      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      NATS_URL: nats://nats:4222
+      MYOTA_ACTIVITY_DB_POOL_MAX: "4"
+    depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   gateway:
     build: .
     command: ["python3", "services/dev_server.py"]

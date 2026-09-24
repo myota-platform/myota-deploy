@@ -16,11 +16,20 @@ services:
   identity: {port: 8001}
   programmes: {port: 8002}
   geodata: {port: 8003}
-  activity: {port: 8004}
+  activity: {port: 8004, replicas: 3, dbPoolMax: 12, httpMaxWorkers: 64}
+activityWorkers:
+  enabled: true
+  replicas: 2
+  dbPoolMax: 4
+  pollSeconds: 1
+activityNotifications:
+  enabled: true
+  replicas: 1
 objectStorage:
   endpoint: http://myota-minio:9000
   awardBucket: myota-awards
   certificateBucket: myota-certificates
+  adifBucket: myota-adif
   existingSecret: myota-minio-auth
   accessKeyKey: access-key
   secretKeyKey: secret-key

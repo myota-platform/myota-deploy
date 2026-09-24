@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   name: {{ include "myota.fullname" (dict "name" $name) }}
 spec:
-  replicas: 1
+  replicas: {{ default 1 $cfg.replicas }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $name }}}}
   template:
     metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $name }}}}
@@ -35,6 +35,12 @@ spec:
               value: {{ $.Values.objectStorage.awardBucket | quote }}
             - name: MYOTA_CERTIFICATE_BUCKET
               value: {{ $.Values.objectStorage.certificateBucket | quote }}
+            - name: MYOTA_ACTIVITY_DB_POOL_MAX
+              value: {{ default 10 $cfg.dbPoolMax | quote }}
+            - name: MYOTA_HTTP_MAX_WORKERS
+              value: {{ default 64 $cfg.httpMaxWorkers | quote }}
+            - name: MYOTA_ADIF_BUCKET
+              value: {{ $.Values.objectStorage.adifBucket | quote }}
             {{- end }}
             {{- if and (eq $name "geodata") $.Values.geodataPipeline.enabled }}
             - name: GEODATA_PIPELINE_ENABLED
@@ -66,6 +72,67 @@ spec:
           resources: {{- toYaml $.Values.resources | nindent 12 }}
 ---
 {{- end }}
+{{- if .Values.activityWorkers.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myota-activity-worker
+spec:
+  replicas: {{ .Values.activityWorkers.replicas }}
+  selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-worker}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-worker}}
+    spec:
+      containers:
+        - name: activity-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["python3", "services/activity_worker.py"]
+          env:
+            - name: CORE_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: core-database-url}}
+            - name: MYOTA_OBJECT_STORAGE_ENDPOINT
+              value: {{ .Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: access-key}}
+            - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: secret-key}}
+            - name: MYOTA_ADIF_BUCKET
+              value: {{ .Values.objectStorage.adifBucket | quote }}
+            - name: MYOTA_CERTIFICATE_BUCKET
+              value: {{ .Values.objectStorage.certificateBucket | quote }}
+            - name: MYOTA_ACTIVITY_DB_POOL_MAX
+              value: {{ .Values.activityWorkers.dbPoolMax | quote }}
+            - name: MYOTA_ACTIVITY_WORKER_POLL_SECONDS
+              value: {{ .Values.activityWorkers.pollSeconds | quote }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}
+{{- if .Values.activityNotifications.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myota-activity-notifications
+spec:
+  replicas: {{ .Values.activityNotifications.replicas }}
+  selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-notifications}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-notifications}}
+    spec:
+      containers:
+        - name: activity-notifications
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["python3", "services/activity_notification_consumer.py"]
+          env:
+            - name: CORE_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: core-database-url}}
+            - name: NATS_URL
+              value: {{ .Values.nats.url | quote }}
+            - name: MYOTA_ACTIVITY_DB_POOL_MAX
+              value: "4"
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:

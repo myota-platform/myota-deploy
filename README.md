@@ -26,7 +26,17 @@ python3 services/dev_server.py
 
 Open <http://127.0.0.1:8080>. The dev server starts the four services on ports 8001–8004 and proxies the browser API calls. Activations and awards intentionally share the activity service on port 8004; there is no standalone awards port. It is intentionally dependency-free.
 
-For a containerized PostGIS environment, start Colima and run `docker-compose up -d --build`. The gateway is available on `http://localhost:8080`; the authenticated administration web is available on `http://localhost:8090`; MinIO is available on `http://localhost:9001` for local asset administration. The image uses the same service code with `SERVICE=identity|programmes|geodata|activity`.
+For a containerized PostGIS environment, start Colima and run
+`docker-compose up -d --build`. The gateway is available on
+`http://localhost:8080`; the authenticated administration web is available on
+`http://localhost:8090`; MinIO is available on `http://localhost:9001` for
+local asset administration. Activity and awards share port 8004, while
+`activity-worker` and `activity-notifications` run asynchronously and can be
+scaled independently. The activity migration is applied by
+`db/migrations/run.sh`; its canonical source is maintained in
+`myota-activity-service/migrations/` and reviewed into this deployment copy.
+Helm rendering and linting run in the GitHub workflow rather than being a
+local prerequisite.
 
 ## Architecture
 

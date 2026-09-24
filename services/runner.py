@@ -26,7 +26,9 @@ if service == "identity":
     bootstrap_admin()
 handler.store.persist()
 print(f"{service}-service listening on :{port}")
-server = ThreadingHTTPServer(("0.0.0.0", port), handler)
+from common import BoundedThreadingHTTPServer
+server_class = BoundedThreadingHTTPServer if service == "activity" else ThreadingHTTPServer
+server = server_class(("0.0.0.0", port), handler)
 try:
     server.serve_forever()
 except KeyboardInterrupt:

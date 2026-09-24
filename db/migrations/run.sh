@@ -2,6 +2,7 @@
 set -euo pipefail
 
 psql -v ON_ERROR_STOP=1 -d "$PGDATABASE" -f /migrations/migrations/core/001_core.sql
+psql -v ON_ERROR_STOP=1 -d "$PGDATABASE" -f /migrations/migrations/core/002_activity.sql
 if [ "$(psql -Atqc "SELECT 1 FROM pg_database WHERE datname = 'myota_geo'")" != "1" ]; then
   createdb myota_geo
 fi
