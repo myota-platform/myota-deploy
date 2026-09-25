@@ -11,3 +11,5 @@ migration adds reverse-geocoded entity fields and must remain synchronized with
 the service repository. The manual-location precedence migration also persists
 which fields are administrator-controlled and exposes them through the QGIS
 review views.
+The unscoped-imports migration keeps programme assignment optional for
+platform-wide candidate intake and adds the refresh category.

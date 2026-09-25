@@ -510,7 +510,7 @@ class ActivityRepository:
                 "qso_count=(SELECT count(*) FROM activity_qso q WHERE q.activation_id=activity_activation.id AND q.status <> 'VOID'), "
                 "unique_callsign_count=(SELECT count(DISTINCT q.worked_callsign) FROM activity_qso q WHERE q.activation_id=activity_activation.id AND q.status <> 'VOID'), "
                 "unique_entity_count=(SELECT count(DISTINCT q.worked_entity_id) FROM activity_qso q WHERE q.activation_id=activity_activation.id AND q.status <> 'VOID'), updated_at=now() "
-                "WHERE entity_id=%s OR id = ANY(%s)", (entity_id, list(affected_activation_ids)))
+                "WHERE entity_id=%s OR id = ANY(%s)", (entity_id, entity_id, list(affected_activation_ids)))
             self._rebuild_subject_aggregates(connection, subject_ids)
             jobs = []
             for programme in programmes:

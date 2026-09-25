@@ -47,7 +47,7 @@ class VerticalSliceTests(unittest.TestCase):
         self.assertEqual(approved["status"], "APPROVED")
 
     def test_import_is_provenance_aware_and_idempotent(self) -> None:
-        body = {"programmeSlug": "regional-ota", "adapter": "OSM", "source": {"name": "OSM", "license": "ODbL 1.0"},
+        body = {"programmeSlug": "regional-ota", "adapter": "OSM", "entityType": "NATURE_RESERVE", "source": {"name": "OSM", "license": "ODbL 1.0"},
                 "features": [{"type": "Feature", "properties": {"name": "A reserve", "sourceRef": "osm/1", "entityType": "NATURE_RESERVE", "leisure": "nature_reserve"}, "geometry": {"type": "Point", "coordinates": [2, 41]}}]}
         p = {"_body": body, "Idempotency-Key": "import-1"}
         first = GeoHandler.import_manual(None, p)
@@ -55,6 +55,16 @@ class VerticalSliceTests(unittest.TestCase):
         self.assertEqual(first, second)
         entity = GeoHandler.get_entity(None, {"entityId": first["created"][0]})
         self.assertEqual(entity["provenance"]["adapter"], "OSM")
+        self.assertEqual(entity["status"], "CANDIDATE")
+
+    def test_import_is_platform_wide_and_uses_shared_category(self) -> None:
+        body = {"adapter": "MANUAL", "source": {"name": "shared-catalogue-test", "license": "CC0"},
+                "entityType": "TRAIL", "features": [{"type": "Feature", "properties": {"name": "Unassigned trail"},
+                "geometry": {"type": "LineString", "coordinates": [[2, 41], [2.01, 41.01]]}}]}
+        result = GeoHandler.import_manual(None, {"_body": body, "Idempotency-Key": "import-unscoped-1"})
+        entity = GeoHandler.get_entity(None, {"entityId": result["created"][0]})
+        self.assertIsNone(entity["programmeSlug"])
+        self.assertEqual(entity["entityType"], "TRAIL")
         self.assertEqual(entity["status"], "CANDIDATE")
 
     def test_supported_import_adapters_normalize_without_owning_policy(self) -> None:

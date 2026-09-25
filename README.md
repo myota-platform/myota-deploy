@@ -40,8 +40,9 @@ local prerequisite.
 
 The admin web's Geodata imports page sends pasted GeoJSON/KML/GPX/WFS/ArcGIS
 documents to the geodata service and uploads binary/text files through the
-MinIO-backed intake endpoint. Every dataset is assigned a programme category
-and enters as `CANDIDATE`; the geodata outbox publishes the queued import event
+MinIO-backed intake endpoint. The category selector reads the complete shared
+Master data catalogue from the programme service database; imports are not
+assigned to a programme and enter as `CANDIDATE`. The geodata outbox publishes the queued import event
 to NATS. Global entity deletion is a two-step API workflow: activity impact and
 QSO cascade/award recalculation first, then geodata entity/audit cleanup.
 
