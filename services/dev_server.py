@@ -21,6 +21,7 @@ from geodata import seed as seed_geodata
 ROOT = Path(__file__).resolve().parent.parent
 SERVICES = {
     "/v1/identity/": ("identity", 8001, IdentityHandler),
+    "/v1/entity-types": ("programmes", 8002, ProgrammeHandler),
     "/v1/programmes": ("programmes", 8002, ProgrammeHandler),
     "/v1/geodata/": ("geodata", 8003, GeoHandler),
     "/v1/activations": ("activity", 8004, ActivityHandler),
