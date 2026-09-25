@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from http.server import ThreadingHTTPServer
+import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -66,6 +67,47 @@ class ProgrammeHandler(JsonHandler):
         programme["updatedAt"] = now()
         ProgrammeHandler.store.event("programme.updated.v1", "programme", programme["id"], programme)
         return programme
+
+    @staticmethod
+    def list_entity_types(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        ProgrammeHandler._authorize_admin(p, p["slug"])
+        programme = ProgrammeHandler.store.items[p["slug"]]
+        return {"programmeSlug": p["slug"], "items": programme.get("entityTypes", [])}
+
+    @staticmethod
+    def save_entity_type(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        ProgrammeHandler._authorize_admin(p, p["slug"])
+        body = p["_body"]
+        require(body, "code", "label", "geometry")
+        code = str(body["code"]).strip().upper()
+        original_code = str(body.get("originalCode") or code).strip().upper()
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{1,63}", code):
+            raise ValueError("category code must start with a letter and contain only A-Z, 0-9, and underscores")
+        if code != original_code:
+            raise ValueError("category codes are stable identifiers and cannot be renamed")
+        geometry = str(body["geometry"]).strip().upper()
+        if geometry not in {"POINT", "LINESTRING", "POLYGON", "MULTIPOLYGON"}:
+            raise ValueError("geometry must be POINT, LINESTRING, POLYGON, or MULTIPOLYGON")
+        programme = ProgrammeHandler.store.items[p["slug"]]
+        entity_types = list(programme.get("entityTypes") or [])
+        existing = next((item for item in entity_types if str(item.get("code", "")).upper() == original_code), None)
+        if not existing and any(str(item.get("code", "")).upper() == code for item in entity_types):
+            raise ValueError("category code already exists")
+        record = {**(existing or {"createdAt": now()}), "code": code, "label": str(body["label"]).strip(),
+                  "geometry": geometry, "description": str(body.get("description") or "").strip(),
+                  "active": bool(body.get("active", existing.get("active", True) if existing else True)), "updatedAt": now()}
+        if not record["label"]:
+            raise ValueError("category label must not be empty")
+        if existing:
+            entity_types[entity_types.index(existing)] = record
+        else:
+            entity_types.append(record)
+        programme["entityTypes"] = entity_types
+        programme["policyVersion"] = programme.get("policyVersion", 1) + 1
+        programme["updatedAt"] = now()
+        ProgrammeHandler.store.event("programme.entity-type.saved.v1", "programme", programme["id"],
+                                     {"programmeSlug": p["slug"], "entityType": record, "previous": existing})
+        return {"programmeSlug": p["slug"], "entityType": record, "items": entity_types, "_status": 201 if not existing else 200}
 
     @staticmethod
     def archive_programme(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
@@ -253,6 +295,8 @@ ProgrammeHandler.routes = {
     ("GET", "/v1/programmes/{slug}"): ProgrammeHandler.get_programme,
     ("POST", "/v1/programmes"): ProgrammeHandler.create_programme,
     ("POST", "/v1/programmes/{slug}/update"): ProgrammeHandler.update_programme,
+    ("GET", "/v1/programmes/{slug}/entity-types"): ProgrammeHandler.list_entity_types,
+    ("POST", "/v1/programmes/{slug}/entity-types"): ProgrammeHandler.save_entity_type,
     ("POST", "/v1/programmes/{slug}/archive"): ProgrammeHandler.archive_programme,
     ("GET", "/v1/programmes/{slug}/policy"): ProgrammeHandler.get_policy,
     ("GET", "/v1/programmes/{slug}/content"): ProgrammeHandler.list_content,
