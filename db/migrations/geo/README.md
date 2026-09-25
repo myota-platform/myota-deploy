@@ -17,3 +17,7 @@ The relational-entity-persistence migration adds the cross-service programme
 slug and shared category code columns used by the geodata service when writing
 manual and imported entities to PostGIS. Entity synchronization is additive;
 only an explicit API deletion removes a relational entity.
+The entity-category-assignment migration adds the relational many-category
+assignment table, keeps one primary compatibility category, and backfills
+existing entities. The canonical source is
+`myota-geodata-service/migrations/008_entity_category_assignments.sql`.

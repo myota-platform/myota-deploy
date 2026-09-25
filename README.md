@@ -7,7 +7,7 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 ## What works now
 
 - Amateur-radio-aware identity: operator/SWL participation, multiple callsigns, one primary callsign, lifecycle and verification fields.
-- Programme configuration: programme-owned entity types, rules, minimum QSOs, awards, theme and optional OIDC settings.
+- Shared entity-category catalogue used by imports and review, with programme assignment and programme-owned rules handled separately.
 - Geodata lifecycle: imported candidate → community proposal → approver review → approved entity.
 - Provenance-aware imports with adapter metadata for ParkServe, OSM, government GIS and manual proposals.
 - Activation and QSO primitives with idempotency keys and audit events.
@@ -50,9 +50,12 @@ local prerequisite.
 
 The admin web's Geodata imports page sends pasted GeoJSON/KML/GPX/WFS/ArcGIS
 documents to the geodata service and uploads binary/text files through the
-MinIO-backed intake endpoint. The category selector reads the complete shared
-Master data catalogue from the programme service database; imports are not
-assigned to a programme and enter as `CANDIDATE`. The geodata outbox publishes the queued import event
+MinIO-backed intake endpoint. The multi-select category control reads the
+complete shared Master data catalogue from the programme service database;
+imports may carry several categories, are not assigned to a programme, and
+enter as `CANDIDATE`. The first category remains the compatibility primary
+`entityType`; all assignments are persisted in `geodata_entity_category`. The
+geodata outbox publishes the queued import event
 to NATS. Global entity deletion is a two-step API workflow: activity impact and
 QSO cascade/award recalculation first, then geodata entity/audit cleanup.
 
