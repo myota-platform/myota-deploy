@@ -59,6 +59,8 @@ spec:
               value: {{ $.Values.geodataPipeline.maxImportFeatures | quote }}
             - name: GEODATA_MAX_COORDINATES
               value: {{ $.Values.geodataPipeline.maxCoordinates | quote }}
+            - name: MYOTA_MAX_BODY_BYTES
+              value: {{ $.Values.geodataPipeline.maxBodyBytes | quote }}
             - name: GEODATA_TILE_CACHE_TTL_SECONDS
               value: {{ $.Values.geodataPipeline.tileCacheTtlSeconds | quote }}
             {{- end }}

@@ -41,6 +41,7 @@ services:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_MAX_BODY_BYTES: "33554432"
       MYOTA_IDENTITY_MAINTENANCE_SECONDS: "3600"
     depends_on: {migrations: {condition: service_completed_successfully}}
   programmes:
@@ -59,6 +60,7 @@ services:
       GEO_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_MAX_BODY_BYTES: "33554432"
       BIGDATACLOUD_API_KEY: \${BIGDATACLOUD_API_KEY:-}
       BIGDATACLOUD_LOCALITY_LANGUAGE: \${BIGDATACLOUD_LOCALITY_LANGUAGE:-en}
     depends_on: {migrations: {condition: service_completed_successfully}}
