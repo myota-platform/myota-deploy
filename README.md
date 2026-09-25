@@ -15,16 +15,26 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 - Universal themed frontend with verified/candidate map distinction.
 - OpenAPI and event contracts, ADRs, migration notes, health endpoints and local deployment manifests.
 
-The default test/runtime adapter is in-memory so the slice can be exercised without third-party Python packages. PostgreSQL/PostGIS is the production storage target and is defined in `db/migrations/`.
+Unit tests may use a small in-memory adapter when they explicitly omit a
+database URL. The local Compose runtime is different: every database-backed
+service has a PostgreSQL/PostGIS URL and `MYOTA_REQUIRE_DURABILITY=1`. A
+missing URL therefore stops that service during startup instead of silently
+accepting writes in process memory. PostgreSQL/PostGIS is defined in
+`db/migrations/` and the named Compose volumes preserve it between restarts.
 
 ## Run the vertical slice
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 services/dev_server.py
+docker-compose up -d --build
 ```
 
-Open <http://127.0.0.1:8080>. The dev server starts the four services on ports 8001–8004 and proxies the browser API calls. Activations and awards intentionally share the activity service on port 8004; there is no standalone awards port. It is intentionally dependency-free.
+Open <http://127.0.0.1:8080>. The Compose stack starts the four services on
+ports 8001–8004 and proxies the browser API calls. Activations and awards
+intentionally share the activity service on port 8004; there is no standalone
+awards port. Use `python3 services/dev_server.py` only as the dependency-free
+unit-test harness; it is not a durable runtime unless database URLs and
+`MYOTA_REQUIRE_DURABILITY=1` are supplied explicitly.
 
 For a containerized PostGIS environment, start Colima and run
 `docker-compose up -d --build`. The gateway is available on

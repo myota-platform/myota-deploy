@@ -19,6 +19,20 @@ from typing import Any, Callable, Iterator
 MAX_BODY_BYTES = int(os.environ.get("MYOTA_MAX_BODY_BYTES", "1048576"))
 
 
+def require_durable_database(dsn_env: str | None, dsn: str) -> None:
+    """Reject an accidental in-memory service when durability is required.
+
+    Tests may still use the small in-memory adapter explicitly.  Local Compose
+    and production-like deployments set ``MYOTA_REQUIRE_DURABILITY`` so a
+    missing database URL fails during service startup instead of losing writes.
+    ``Store()`` instances without a DSN environment variable are framework
+    helpers and are intentionally not subject to this check.
+    """
+    required = os.environ.get("MYOTA_REQUIRE_DURABILITY", "").strip().lower() in {"1", "true", "yes", "on"}
+    if required and dsn_env and not dsn:
+        raise RuntimeError(f"{dsn_env} is required when MYOTA_REQUIRE_DURABILITY is enabled")
+
+
 class BoundedThreadingHTTPServer(ThreadingHTTPServer):
     """Thread-per-request server with an explicit concurrency ceiling."""
 
@@ -131,6 +145,7 @@ class Store:
                  persist_state: bool = True) -> None:
         self.service = service
         self.dsn = os.environ.get(dsn_env or "", "") if dsn_env else ""
+        require_durable_database(dsn_env, self.dsn)
         self.persist_state = persist_state
         self.items: dict[str, dict[str, Any]] = {}
         self.events: list[dict[str, Any]] = []
