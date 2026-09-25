@@ -13,3 +13,7 @@ which fields are administrator-controlled and exposes them through the QGIS
 review views.
 The unscoped-imports migration keeps programme assignment optional for
 platform-wide candidate intake and adds the refresh category.
+The relational-entity-persistence migration adds the cross-service programme
+slug and shared category code columns used by the geodata service when writing
+manual and imported entities to PostGIS. Entity synchronization is additive;
+only an explicit API deletion removes a relational entity.
