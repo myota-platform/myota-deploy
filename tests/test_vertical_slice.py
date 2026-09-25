@@ -46,6 +46,16 @@ class VerticalSliceTests(unittest.TestCase):
         approved = GeoHandler.review(None, {"entityId": entity_id, "_body": {"decision": "APPROVED", "reviewerId": "approver-1"}})
         self.assertEqual(approved["status"], "APPROVED")
 
+    def test_geodata_review_filters_statuses_and_pages_deterministically(self) -> None:
+        result = GeoHandler.list_entities(None, {"_path": "/v1/geodata/entities?status=CANDIDATE&status=APPROVED&page=1&pageSize=2"})
+        self.assertEqual(result["page"], 1)
+        self.assertEqual(result["pageSize"], 2)
+        self.assertEqual(result["total"], 3)
+        self.assertEqual(len(result["items"]), 2)
+        self.assertTrue(all(entity["status"] in {"CANDIDATE", "APPROVED"} for entity in result["items"]))
+        second_page = GeoHandler.list_entities(None, {"_path": "/v1/geodata/entities?status=CANDIDATE,APPROVED&page=2&pageSize=2"})
+        self.assertEqual(len(second_page["items"]), 1)
+
     def test_import_is_provenance_aware_and_idempotent(self) -> None:
         body = {"programmeSlug": "regional-ota", "adapter": "OSM", "entityType": "NATURE_RESERVE", "source": {"name": "OSM", "license": "ODbL 1.0"},
                 "features": [{"type": "Feature", "properties": {"name": "A reserve", "sourceRef": "osm/1", "entityType": "NATURE_RESERVE", "leisure": "nature_reserve"}, "geometry": {"type": "Point", "coordinates": [2, 41]}}]}
