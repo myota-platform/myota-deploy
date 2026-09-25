@@ -83,6 +83,16 @@ class VerticalSliceTests(unittest.TestCase):
         self.assertEqual(changed_name["name"], "Renamed trail")
         self.assertEqual([entry["action"] for entry in changed_name["reviewHistory"]][-2:], ["ENTITY_TYPE_CHANGED", "ENTITY_NAME_CHANGED"])
 
+    def test_manual_draw_proposal_can_be_platform_wide(self) -> None:
+        result = GeoHandler.draw_proposal(None, {"_body": {
+            "source": {"name": "manual-map-test", "license": "CC0"},
+            "feature": {"properties": {"name": "Unassigned drawn trail", "entityType": "TRAIL"},
+                        "geometry": {"type": "LineString", "coordinates": [[2, 41], [2.01, 41.01]]}}
+        }})
+        entity = GeoHandler.get_entity(None, {"entityId": result["created"][0]})
+        self.assertIsNone(entity["programmeSlug"])
+        self.assertEqual(entity["status"], "CANDIDATE")
+
     def test_supported_import_adapters_normalize_without_owning_policy(self) -> None:
         osm = normalize("OSM", {"properties": {"osm_id": "way/7", "leisure": "park"}, "geometry": {"type": "Point", "coordinates": [1, 2]}})
         self.assertEqual(osm["properties"]["sourceRef"], "way/7")
