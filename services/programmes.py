@@ -7,6 +7,9 @@ from urllib.parse import parse_qs, urlparse
 
 from common import JsonHandler, Store, new_id, now, page_result, require, verify_token
 
+ENTITY_GEOMETRY_TYPES = {"POINT", "LINESTRING", "MULTILINESTRING", "POLYGON", "MULTIPOLYGON"}
+ENTITY_GEOMETRY_ALIASES = {"WAY": "LINESTRING"}
+
 
 class ProgrammeHandler(JsonHandler):
     service = "programme-service"
@@ -33,20 +36,26 @@ class ProgrammeHandler(JsonHandler):
 
     @staticmethod
     def _normalise_entity_type(body: dict[str, Any], existing: dict[str, Any] | None = None) -> dict[str, Any]:
-        require(body, "code", "label", "geometry")
+        require(body, "code", "label")
         code = str(body["code"]).strip().upper()
         original_code = str(body.get("originalCode") or code).strip().upper()
         if not re.fullmatch(r"[A-Z][A-Z0-9_]{1,63}", code):
             raise ValueError("category code must start with a letter and contain only A-Z, 0-9, and underscores")
         if code != original_code:
             raise ValueError("category codes are stable identifiers and cannot be renamed")
-        geometry = str(body["geometry"]).strip().upper()
-        if geometry not in {"POINT", "LINESTRING", "POLYGON", "MULTIPOLYGON"}:
-            raise ValueError("geometry must be POINT, LINESTRING, POLYGON, or MULTIPOLYGON")
+        raw_geometry_types = body.get("geometryTypes", body.get("geometry"))
+        if isinstance(raw_geometry_types, str):
+            raw_geometry_types = [raw_geometry_types]
+        if not isinstance(raw_geometry_types, list) or not raw_geometry_types:
+            raise ValueError("geometryTypes must contain at least one supported GeoJSON geometry type")
+        geometry_types = list(dict.fromkeys(ENTITY_GEOMETRY_ALIASES.get(str(value).strip().upper(), str(value).strip().upper()) for value in raw_geometry_types))
+        if any(value not in ENTITY_GEOMETRY_TYPES for value in geometry_types):
+            raise ValueError("geometryTypes must contain only POINT, LINESTRING, MULTILINESTRING, POLYGON, or MULTIPOLYGON")
         label = str(body["label"]).strip()
         if not label:
             raise ValueError("category label must not be empty")
-        return {**(existing or {"createdAt": now()}), "code": code, "label": label, "geometry": geometry,
+        return {**(existing or {"createdAt": now()}), "code": code, "label": label,
+                "geometry": geometry_types[0], "geometryTypes": geometry_types,
                 "description": str(body.get("description") or "").strip(),
                 "active": bool(body.get("active", existing.get("active", True) if existing else True)), "updatedAt": now()}
 
@@ -82,6 +91,9 @@ class ProgrammeHandler(JsonHandler):
                 code = str(item.get("code", "")).strip().upper()
                 if code and code not in catalog:
                     catalog[code] = {**item, "code": code}
+                    changed = True
+                if code and code in catalog and not catalog[code].get("geometryTypes"):
+                    catalog[code]["geometryTypes"] = [str(catalog[code].get("geometry", "MULTIPOLYGON")).strip().upper()]
                     changed = True
             codes = ProgrammeHandler._assigned_codes(programme)
             if programme.get("entityTypeCodes") != codes:
