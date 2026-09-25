@@ -38,6 +38,13 @@ scaled independently. The activity migration is applied by
 Helm rendering and linting run in the GitHub workflow rather than being a
 local prerequisite.
 
+The admin web's Geodata imports page sends pasted GeoJSON/KML/GPX/WFS/ArcGIS
+documents to the geodata service and uploads binary/text files through the
+MinIO-backed intake endpoint. Every dataset is assigned a programme category
+and enters as `CANDIDATE`; the geodata outbox publishes the queued import event
+to NATS. Global entity deletion is a two-step API workflow: activity impact and
+QSO cascade/award recalculation first, then geodata entity/audit cleanup.
+
 ## Architecture
 
 Read [`docs/architecture.md`](docs/architecture.md), [`docs/adr/0001-storage-topology.md`](docs/adr/0001-storage-topology.md), and [`docs/repository-map.md`](docs/repository-map.md). The current bootstrap is kept together to make the vertical slice easy to run; the repository map defines the justified GitHub split once the MyOTA organization is available.

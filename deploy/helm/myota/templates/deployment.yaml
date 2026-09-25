@@ -43,6 +43,14 @@ spec:
               value: {{ $.Values.objectStorage.adifBucket | quote }}
             {{- end }}
             {{- if and (eq $name "geodata") $.Values.geodataPipeline.enabled }}
+            - name: MYOTA_OBJECT_STORAGE_ENDPOINT
+              value: {{ $.Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.accessKeyKey }}}}
+            - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.secretKeyKey }}}}
+            - name: NATS_URL
+              value: {{ $.Values.nats.url | default "nats://myota-nats:4222" | quote }}
             - name: GEODATA_PIPELINE_ENABLED
               value: "true"
             - name: GEODATA_MAX_IMPORT_FEATURES

@@ -274,6 +274,31 @@ class ActivityHandler(JsonHandler):
         items = ActivityHandler.repository.list_notifications(recipient) if ActivityHandler.repository.durable else []
         return {"items": items}
 
+    @staticmethod
+    def entity_deletion_impact(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        ActivityHandler._authorize(p, {"activity.admin"})
+        if ActivityHandler.repository.durable:
+            return ActivityHandler.repository.entity_deletion_impact(p["entityId"])
+        qsos = [qso for activation in ActivityHandler.store.items.values() for qso in activation.get("qsos", [])
+                if qso.get("workedEntityId") == p["entityId"] or activation.get("entityId") == p["entityId"]]
+        activations = [item for item in ActivityHandler.store.items.values() if item.get("entityId") == p["entityId"]]
+        return {"entityId": p["entityId"], "qsoCount": len(qsos), "activationCount": len(activations), "awardProgressCount": 0}
+
+    @staticmethod
+    def cascade_delete_entity(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        claims = ActivityHandler._authorize(p, {"activity.admin"})
+        deleted_by = claims.get("sub") or p.get("_body", {}).get("deletedBy") or "administrator"
+        if ActivityHandler.repository.durable:
+            return ActivityHandler.repository.cascade_delete_entity(p["entityId"], deleted_by)
+        qso_count = 0
+        activation_count = 0
+        for activation in ActivityHandler.store.items.values():
+            if activation.get("entityId") == p["entityId"]: activation_count += 1; activation["status"] = "CLOSED_INVALID"
+            before = len(activation.get("qsos", []))
+            activation["qsos"] = [qso for qso in activation.get("qsos", []) if qso.get("workedEntityId") != p["entityId"] and activation.get("entityId") != p["entityId"]]
+            qso_count += before - len(activation["qsos"])
+        return {"entityId": p["entityId"], "deletedBy": deleted_by, "qsoCount": qso_count, "activationCount": activation_count, "awardRecalculationJobs": []}
+
 
 ActivityHandler.routes = {
     ("GET", "/v1/activations"): ActivityHandler.list_activations,
@@ -292,6 +317,8 @@ ActivityHandler.routes = {
     ("POST", "/v1/statistics/rebuild"): ActivityHandler.rebuild_statistics,
     ("GET", "/v1/statistics"): ActivityHandler.list_statistics,
     ("GET", "/v1/notifications"): ActivityHandler.list_notifications,
+    ("GET", "/v1/activations/admin/entities/{entityId}/deletion-impact"): ActivityHandler.entity_deletion_impact,
+    ("POST", "/v1/activations/admin/entities/{entityId}/cascade-delete"): ActivityHandler.cascade_delete_entity,
     **AwardsHandler.routes,
 }
 
