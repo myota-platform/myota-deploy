@@ -67,6 +67,22 @@ class VerticalSliceTests(unittest.TestCase):
         self.assertEqual(entity["entityType"], "TRAIL")
         self.assertEqual(entity["status"], "CANDIDATE")
 
+    def test_platform_wide_entity_category_and_name_are_editable_and_audited(self) -> None:
+        result = GeoHandler.import_manual(None, {"_body": {
+            "adapter": "MANUAL", "source": {"name": "review-edit-test", "license": "CC0"},
+            "entityType": "TRAIL", "features": [{"type": "Feature", "properties": {"name": "Old trail"},
+            "geometry": {"type": "LineString", "coordinates": [[2, 41], [2.01, 41.01]]}}]},
+            "Idempotency-Key": "review-edit-1"})
+        entity_id = result["created"][0]
+        changed_category = GeoHandler.change_entity_type(None, {"entityId": entity_id, "_body": {
+            "entityType": "MUNICIPAL_PARK", "editorId": "reviewer-1", "note": "Shared catalogue correction"}})
+        changed_name = GeoHandler.change_entity_name(None, {"entityId": entity_id, "_body": {
+            "name": "Renamed trail", "editorId": "reviewer-1", "note": "Corrected source spelling"}})
+        self.assertIsNone(changed_category["programmeSlug"])
+        self.assertEqual(changed_category["entityType"], "MUNICIPAL_PARK")
+        self.assertEqual(changed_name["name"], "Renamed trail")
+        self.assertEqual([entry["action"] for entry in changed_name["reviewHistory"]][-2:], ["ENTITY_TYPE_CHANGED", "ENTITY_NAME_CHANGED"])
+
     def test_supported_import_adapters_normalize_without_owning_policy(self) -> None:
         osm = normalize("OSM", {"properties": {"osm_id": "way/7", "leisure": "park"}, "geometry": {"type": "Point", "coordinates": [1, 2]}})
         self.assertEqual(osm["properties"]["sourceRef"], "way/7")
