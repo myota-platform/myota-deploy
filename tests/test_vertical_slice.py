@@ -103,6 +103,22 @@ class VerticalSliceTests(unittest.TestCase):
         self.assertIsNone(entity["programmeSlug"])
         self.assertEqual(entity["status"], "CANDIDATE")
 
+    def test_manual_draw_proposal_persists_multiple_categories_and_primary(self) -> None:
+        result = GeoHandler.draw_proposal(None, {"_body": {
+            "source": {"name": "multi-category-map-test", "license": "CC0"},
+            "feature": {"properties": {"name": "Park and trail", "entityTypes": ["TRAIL", "NATURE_RESERVE"]},
+                        "geometry": {"type": "LineString", "coordinates": [[2, 41], [2.01, 41.01]]}}
+        }})
+        entity = GeoHandler.get_entity(None, {"entityId": result["created"][0]})
+        self.assertEqual(entity["entityType"], "TRAIL")
+        self.assertEqual(entity["entityTypes"], ["TRAIL", "NATURE_RESERVE"])
+        changed = GeoHandler.change_entity_type(None, {"entityId": entity["id"], "_body": {
+            "entityTypes": ["NATURE_RESERVE", "TRAIL"], "editorId": "reviewer-1", "note": "Additional classification"}})
+        self.assertEqual(changed["entityType"], "NATURE_RESERVE")
+        self.assertEqual(changed["entityTypes"], ["NATURE_RESERVE", "TRAIL"])
+        filtered = GeoHandler.list_entities(None, {"_path": "/v1/geodata/entities?entityType=TRAIL"})
+        self.assertIn(entity["id"], {item["id"] for item in filtered["items"]})
+
     def test_supported_import_adapters_normalize_without_owning_policy(self) -> None:
         osm = normalize("OSM", {"properties": {"osm_id": "way/7", "leisure": "park"}, "geometry": {"type": "Point", "coordinates": [1, 2]}})
         self.assertEqual(osm["properties"]["sourceRef"], "way/7")
