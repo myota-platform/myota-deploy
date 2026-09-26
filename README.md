@@ -41,7 +41,10 @@ For a containerized PostGIS environment, start Colima and run
 `http://localhost:8080`; the authenticated administration web is available on
 `http://localhost:8090`; SeaweedFS exposes its S3 endpoint on
 `http://localhost:8333` and filer UI on `http://localhost:8888` for local
-object administration. Activity and awards share port 8004, while
+object administration. Container and Kubernetes health probes use the S3
+`/status` endpoint rather than the filer HTML root; the latter is a streaming
+directory page and can log harmless broken-pipe messages when a probe closes
+early. Activity and awards share port 8004, while
 `activity-worker` and `activity-notifications` run asynchronously and can be
 scaled independently. The activity migration is applied by
 `db/migrations/run.sh`; its canonical source is maintained in

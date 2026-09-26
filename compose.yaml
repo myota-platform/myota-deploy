@@ -146,7 +146,10 @@ services:
     volumes: ["seaweedfs-data:/data"]
     ports: ["8333:8333", "8888:8888"]
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8888/"]
+      # Probe the S3 status endpoint. Probing the filer HTML root with
+      # wget --spider makes the template writer log a broken pipe because the
+      # client closes the response before the directory page is rendered.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8333/status"]
       interval: 10s
       timeout: 5s
       retries: 20

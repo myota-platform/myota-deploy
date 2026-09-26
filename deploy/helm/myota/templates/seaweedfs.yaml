@@ -32,8 +32,11 @@ spec:
           ports:
             - {name: s3, containerPort: 8333}
             - {name: filer, containerPort: 8888}
-          readinessProbe: {httpGet: {path: /status, port: filer}}
-          livenessProbe: {httpGet: {path: /status, port: filer}}
+          # The S3 status endpoint is a small, body-less health response. The
+          # filer root is an HTML directory page and is not suitable for a
+          # probe because clients may disconnect while the template renders.
+          readinessProbe: {httpGet: {path: /status, port: s3}}
+          livenessProbe: {httpGet: {path: /status, port: s3}}
           volumeMounts: [{name: data, mountPath: /data}]
       volumes: [{name: data, persistentVolumeClaim: {claimName: myota-seaweedfs-data}}]
 ---
