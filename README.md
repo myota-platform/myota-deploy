@@ -39,8 +39,9 @@ unit-test harness; it is not a durable runtime unless database URLs and
 For a containerized PostGIS environment, start Colima and run
 `docker-compose up -d --build`. The gateway is available on
 `http://localhost:8080`; the authenticated administration web is available on
-`http://localhost:8090`; MinIO is available on `http://localhost:9001` for
-local asset administration. Activity and awards share port 8004, while
+`http://localhost:8090`; SeaweedFS exposes its S3 endpoint on
+`http://localhost:8333` and filer UI on `http://localhost:8888` for local
+object administration. Activity and awards share port 8004, while
 `activity-worker` and `activity-notifications` run asynchronously and can be
 scaled independently. The activity migration is applied by
 `db/migrations/run.sh`; its canonical source is maintained in
@@ -48,9 +49,26 @@ scaled independently. The activity migration is applied by
 Helm rendering and linting run in the GitHub workflow rather than being a
 local prerequisite.
 
+### Migrating filesystem-adapter objects
+
+Before removing a development `MYOTA_OBJECT_STORAGE_LOCAL_DIR`, copy its
+bucket/key tree into SeaweedFS with:
+
+```bash
+MYOTA_OBJECT_STORAGE_ENDPOINT=http://localhost:8333 \
+MYOTA_OBJECT_STORAGE_ACCESS_KEY=myota-s3 \
+MYOTA_OBJECT_STORAGE_SECRET_KEY=myota-s3-dev-only \
+python3 scripts/migrate-local-object-store.py --source /path/to/object-store
+```
+
+The tool preserves bucket names and object keys. It is safe to run with
+`--dry-run` first and is idempotent for the same source tree. The current
+checkout was inventoried during the migration; no filesystem-adapter object
+directory was present, and the old development object-store volume was empty.
+
 The admin web's Geodata imports page sends pasted GeoJSON/KML/GPX/WFS/ArcGIS
 documents to the geodata service and uploads binary/text files through the
-MinIO-backed intake endpoint. The multi-select category control reads the
+SeaweedFS-backed intake endpoint. The multi-select category control reads the
 complete shared Master data catalogue from the programme service database;
 imports may carry several categories, are not assigned to a programme, and
 enter as `CANDIDATE`. The first category remains the compatibility primary

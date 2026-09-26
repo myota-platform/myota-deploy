@@ -29,6 +29,8 @@ spec:
             {{- if eq $name "activity" }}
             - name: MYOTA_OBJECT_STORAGE_ENDPOINT
               value: {{ $.Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT
+              value: {{ $.Values.objectStorage.publicEndpoint | default $.Values.objectStorage.endpoint | quote }}
             - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
               valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.accessKeyKey }}}}
             - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
@@ -47,6 +49,8 @@ spec:
             {{- if and (eq $name "geodata") $.Values.geodataPipeline.enabled }}
             - name: MYOTA_OBJECT_STORAGE_ENDPOINT
               value: {{ $.Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT
+              value: {{ $.Values.objectStorage.publicEndpoint | default $.Values.objectStorage.endpoint | quote }}
             - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
               valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.accessKeyKey }}}}
             - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
@@ -107,6 +111,8 @@ spec:
               value: "1"
             - name: MYOTA_OBJECT_STORAGE_ENDPOINT
               value: {{ .Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT
+              value: {{ .Values.objectStorage.publicEndpoint | default .Values.objectStorage.endpoint | quote }}
             - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
               valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: access-key}}
             - name: MYOTA_OBJECT_STORAGE_SECRET_KEY

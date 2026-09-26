@@ -61,6 +61,9 @@ services:
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_MAX_BODY_BYTES: "33554432"
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
       BIGDATACLOUD_API_KEY: \${BIGDATACLOUD_API_KEY:-}
       BIGDATACLOUD_LOCALITY_LANGUAGE: \${BIGDATACLOUD_LOCALITY_LANGUAGE:-en}
     depends_on: {migrations: {condition: service_completed_successfully}}
@@ -72,6 +75,12 @@ services:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+      MYOTA_OBJECT_STORAGE_BUCKET: myota-awards
+      MYOTA_CERTIFICATE_BUCKET: myota-certificates
+      MYOTA_ADIF_BUCKET: myota-adif
     depends_on: {migrations: {condition: service_completed_successfully}}
     ports: ["8004:8004"]
   activity-worker:
@@ -80,9 +89,9 @@ services:
     environment:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
-      MYOTA_OBJECT_STORAGE_ENDPOINT: http://minio:9000
-      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-minio
-      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-minio-dev-only
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
       MYOTA_ADIF_BUCKET: myota-adif
       MYOTA_CERTIFICATE_BUCKET: myota-certificates
       MYOTA_ACTIVITY_DB_POOL_MAX: "4"

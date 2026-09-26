@@ -26,13 +26,21 @@ activityNotifications:
   enabled: true
   replicas: 1
 objectStorage:
-  endpoint: http://myota-minio:9000
+  endpoint: http://myota-seaweedfs:8333
+  publicEndpoint: ""
   awardBucket: myota-awards
   certificateBucket: myota-certificates
   adifBucket: myota-adif
-  existingSecret: myota-minio-auth
+  geodataImportBucket: myota-geodata-imports
+  existingSecret: myota-s3-auth
   accessKeyKey: access-key
   secretKeyKey: secret-key
+seaweedfs:
+  enabled: false
+  image: chrislusf/seaweedfs:latest
+  accessKey: myota-s3
+  secretKey: change-me
+  storageSize: 20Gi
 geodataPipeline:
   enabled: true
   maxImportFeatures: 5000
