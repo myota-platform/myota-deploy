@@ -71,7 +71,10 @@ class VerticalSliceTests(unittest.TestCase):
         first = GeoHandler.import_manual(None, p)
         second = GeoHandler.import_manual(None, p)
         self.assertEqual(first, second)
-        entity = GeoHandler.get_entity(None, {"entityId": first["created"][0]})
+        candidate_id = first["preprocessed"][0]
+        GeoHandler.validate_import_candidates(None, {"runId": first["importRunId"], "_body": {"candidateIds": [candidate_id], "reviewerId": "admin"}})
+        queue = GeoHandler.process_import_candidates(None, {"runId": first["importRunId"], "_body": {"candidateIds": [candidate_id], "targetStatus": "CANDIDATE", "processorId": "admin"}})
+        entity = GeoHandler.get_entity(None, {"entityId": queue["result"]["created"][0]})
         self.assertEqual(entity["provenance"]["adapter"], "OSM")
         self.assertEqual(entity["status"], "CANDIDATE")
 
@@ -80,7 +83,10 @@ class VerticalSliceTests(unittest.TestCase):
                 "entityType": "TRAIL", "features": [{"type": "Feature", "properties": {"name": "Unassigned trail"},
                 "geometry": {"type": "LineString", "coordinates": [[2, 41], [2.01, 41.01]]}}]}
         result = GeoHandler.import_manual(None, {"_body": body, "Idempotency-Key": "import-unscoped-1"})
-        entity = GeoHandler.get_entity(None, {"entityId": result["created"][0]})
+        candidate_id = result["preprocessed"][0]
+        GeoHandler.validate_import_candidates(None, {"runId": result["importRunId"], "_body": {"candidateIds": [candidate_id], "reviewerId": "admin"}})
+        queue = GeoHandler.process_import_candidates(None, {"runId": result["importRunId"], "_body": {"candidateIds": [candidate_id], "targetStatus": "CANDIDATE", "processorId": "admin"}})
+        entity = GeoHandler.get_entity(None, {"entityId": queue["result"]["created"][0]})
         self.assertIsNone(entity["programmeSlug"])
         self.assertEqual(entity["entityType"], "TRAIL")
         self.assertEqual(entity["status"], "CANDIDATE")
@@ -91,7 +97,10 @@ class VerticalSliceTests(unittest.TestCase):
             "entityType": "TRAIL", "features": [{"type": "Feature", "properties": {"name": "Old trail"},
             "geometry": {"type": "LineString", "coordinates": [[2, 41], [2.01, 41.01]]}}]},
             "Idempotency-Key": "review-edit-1"})
-        entity_id = result["created"][0]
+        candidate_id = result["preprocessed"][0]
+        GeoHandler.validate_import_candidates(None, {"runId": result["importRunId"], "_body": {"candidateIds": [candidate_id], "reviewerId": "admin"}})
+        queue = GeoHandler.process_import_candidates(None, {"runId": result["importRunId"], "_body": {"candidateIds": [candidate_id], "targetStatus": "CANDIDATE", "processorId": "admin"}})
+        entity_id = queue["result"]["created"][0]
         changed_category = GeoHandler.change_entity_type(None, {"entityId": entity_id, "_body": {
             "entityType": "MUNICIPAL_PARK", "editorId": "reviewer-1", "note": "Shared catalogue correction"}})
         changed_name = GeoHandler.change_entity_name(None, {"entityId": entity_id, "_body": {

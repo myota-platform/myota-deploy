@@ -14,7 +14,7 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 
 - Amateur-radio-aware identity: operator/SWL participation, multiple callsigns, one primary callsign, lifecycle and verification fields.
 - Shared entity-category catalogue used by imports and review, with programme assignment and programme-owned rules handled separately.
-- Geodata lifecycle: adapter/import run or community proposal → CANDIDATE → approver review → APPROVED or REJECTED; approved entities may only be RETIRED.
+- Geodata lifecycle: adapter/import run or community proposal → pre-processing → administrator validation → CANDIDATE or APPROVED; normal review then permits CANDIDATE → APPROVED or REJECTED, and approved entities may only be RETIRED.
 - Provenance-aware imports with adapter metadata for ParkServe, OSM, government GIS and manual proposals.
 - Activation and QSO primitives with idempotency keys and audit events.
 - Programme-owned hunter/activator awards, nested conditions, achievement levels, asset metadata and issuance requests are served by the activity service on the same port (8004).
@@ -51,8 +51,10 @@ object administration. Container and Kubernetes health probes use the S3
 `/status` endpoint rather than the filer HTML root; the latter is a streaming
 directory page and can log harmless broken-pipe messages when a probe closes
 early. Activity and awards share port 8004, while
-`activity-worker` and `activity-notifications` run asynchronously and can be
-scaled independently. The activity migration is applied by
+`activity-worker`, `activity-notifications`, and `geodata-import-processing`
+run asynchronously and can be scaled independently. The geodata processing
+worker consumes `myota.geodata.import.process.v1` after an administrator
+confirms a selection. The activity migration is applied by
 `db/migrations/run.sh`; its canonical source is maintained in
 `myota-activity-service/migrations/` and reviewed into this deployment copy.
 Helm rendering and linting run in the GitHub workflow rather than being a
@@ -77,13 +79,15 @@ directory was present, and the old development object-store volume was empty.
 
 The admin web's Geodata imports page sends pasted GeoJSON/KML/GPX/WFS/ArcGIS
 documents to the geodata service and uploads binary/text files through the
-SeaweedFS-backed intake endpoint. The multi-select category control reads the
+SeaweedFS-backed intake endpoint. Imports stop at `PREPROCESSED`; the admin
+modal provides compact paging, select-all, validation, and explicit promotion
+to `CANDIDATE` or `APPROVED`. The multi-select category control reads the
 complete shared Master data catalogue from the programme service database;
 imports may carry several categories, are not assigned to a programme, and
 enter as `CANDIDATE`. The first category remains the compatibility primary
 `entityType`; all assignments are persisted in `geodata_entity_category`. The
-geodata outbox publishes the queued import event
-to NATS. Global entity deletion is a two-step API workflow: activity impact and
+geodata outbox publishes the processing request to NATS. Global entity deletion
+is a two-step API workflow: activity impact and
 QSO cascade/award recalculation first, then geodata entity/audit cleanup.
 
 ## Architecture

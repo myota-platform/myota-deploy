@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from http.server import ThreadingHTTPServer
+from concurrent.futures import ThreadPoolExecutor
 import math
+import os
 import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse
@@ -11,7 +13,7 @@ from geodata_pipeline import (MAX_IMPORT_FEATURES, conflation_score, digest, geo
                               normalize_geometry, source_manifest, validate_attachments)
 from geodata_store import GeodataStore
 from import_adapters import normalize
-from import_formats import SUPPORTED_FORMATS, parse_text, parse_uploaded
+from import_formats import SUPPORTED_FORMATS, TEXT_FORMATS, parse_text, parse_uploaded
 from location_catalog import build_location_tree, derive_location_codes
 from reverse_geocoder import LOCATION_FIELDS, enrich_entity_location
 
@@ -40,6 +42,8 @@ def entity_categories(entity: dict[str, Any]) -> list[str]:
 class GeoHandler(JsonHandler):
     service = "geodata-service"
     store = GeodataStore("geodata", "GEO_DATABASE_URL")
+    import_executor = ThreadPoolExecutor(max_workers=max(1, int(os.environ.get("MYOTA_IMPORT_WORKERS", "2"))),
+                                          thread_name_prefix="geodata-import")
 
     @staticmethod
     def _authorize_review(p: dict[str, str], entity: dict[str, Any]) -> None:
@@ -265,7 +269,8 @@ class GeoHandler(JsonHandler):
             source.setdefault("attribution", "© OpenStreetMap contributors")
         source_key = GeoHandler._source_key(source)
         records = []
-        created, updated, skipped, errors, conflation = [], [], [], [], []
+        preprocessed, skipped, errors = [], [], []
+        import_candidates = GeoHandler.store.data.setdefault("importCandidates", {})
         for index, raw_feature in enumerate(body["features"]):
             try:
                 feature = normalize(adapter, raw_feature)
@@ -284,13 +289,17 @@ class GeoHandler(JsonHandler):
                 occurred_at = now()
                 default_entity_type = "TRAIL" if str(props.get("featureType") or "").casefold() == "way" or geometry.get("type") == "LineString" else "MUNICIPAL_PARK"
                 categories = entity_type_codes(props.get("entityTypes") or props.get("entityType"), default_entity_type) or [default_entity_type]
-                candidate_source = props.get("candidateSource") or {"type": "ADAPTER_IMPORT", "adapter": adapter, "importRunId": run_id, "sourceKey": source_key, "sourceRef": source_ref}
+                candidate_source = props.get("candidateSource") or {
+                    "type": "ADAPTER_IMPORT", "adapter": adapter, "importRunId": run_id,
+                    "sourceKey": source_key, "sourceRef": source_ref,
+                }
                 entity = {"id": existing["id"] if existing else new_id(), "programmeSlug": programme_slug,
                           "entityType": categories[0], "entityTypes": categories, "entityTypeCodes": categories,
                           "name": props.get("name", "Unnamed candidate"),
                           "status": existing["status"] if existing else "CANDIDATE", "sourceState": "CURRENT", "geometry": geometry,
                           "centroid": geometry_centroid(geometry), "jurisdiction": props.get("jurisdiction"), "sourceRef": source_ref,
-                          "attachments": attachments, "candidateSource": candidate_source, "provenance": {"adapter": adapter, "source": source, "sourceKey": source_key,
+                          "attachments": attachments, "candidateSource": candidate_source,
+                          "provenance": {"adapter": adapter, "source": source, "sourceKey": source_key,
                                          "sourceFeature": raw_feature, "importRunId": run_id, "sourceHash": digest(raw_feature),
                                          "license": source.get("license"), "attribution": source.get("attribution"),
                                          "retrievedAt": source.get("retrievedAt", occurred_at)},
@@ -300,12 +309,15 @@ class GeoHandler(JsonHandler):
                           "createdAt": existing.get("createdAt", occurred_at) if existing else occurred_at, "updatedAt": occurred_at}
                 GeoHandler._preserve_manual_location(existing, entity)
                 enrich_entity_location(entity)
-                GeoHandler.store.items[entity["id"]] = entity
-                if not existing:
-                    GeoHandler.store.event("geodata.entity.candidate.created.v1", "entity", entity["id"], entity)
-                (updated if existing else created).append(entity["id"])
+                candidate_id = new_id()
+                candidate = {"id": candidate_id, "importRunId": run_id, "ordinal": index,
+                             "existingEntityId": existing["id"] if existing else None,
+                             "candidateSource": candidate_source, "validationStatus": "PENDING",
+                             "targetStatus": None, "processedEntityId": None, "processedAt": None,
+                             "entity": entity}
+                import_candidates[candidate_id] = candidate
+                preprocessed.append(candidate_id)
                 records.append({"sourceRef": source_ref, "sourceHash": entity["provenance"]["sourceHash"]})
-                conflation.extend(GeoHandler._create_conflation_candidates(entity))
             except (TypeError, ValueError) as error:
                 errors.append({"index": index, "message": str(error)})
         seen_refs = {record["sourceRef"] for record in records}
@@ -315,14 +327,58 @@ class GeoHandler(JsonHandler):
         manifest["sourceKey"] = source_key
         manifest["sourceChanged"] = not any(item.get("sourceHash") == manifest["sourceHash"] for item in GeoHandler.store.data.setdefault("sourceManifests", {}).values() if item.get("sourceKey") == source_key)
         GeoHandler.store.data["sourceManifests"][run_id] = manifest
-        result = {"importRunId": run_id, "adapter": adapter, "created": created, "updated": updated, "skipped": skipped,
-                  "errors": errors, "disappeared": disappeared, "conflationCandidates": [item["id"] for item in conflation],
+        result = {"importRunId": run_id, "adapter": adapter, "preprocessed": preprocessed, "created": [], "updated": [], "skipped": skipped,
+                  "errors": errors, "disappeared": disappeared, "conflationCandidates": [],
                   "manifest": manifest, "_status": 202}
         return result
 
     @staticmethod
-    def _start_import(body: dict[str, Any], features: list[dict[str, Any]], p: dict[str, str], filename: str | None = None) -> dict[str, Any]:
-        body = {**body, "features": features}
+    def _candidate_view(candidate: dict[str, Any]) -> dict[str, Any]:
+        entity = candidate.get("entity") or {}
+        return {"id": candidate["id"], "importRunId": candidate["importRunId"], "ordinal": candidate.get("ordinal"),
+                "existingEntityId": candidate.get("existingEntityId"), "name": entity.get("name"),
+                "entityTypes": entity.get("entityTypes") or [], "geometry": entity.get("geometry"),
+                "centroid": entity.get("centroid"), "sourceRef": entity.get("sourceRef"),
+                "candidateSource": candidate.get("candidateSource") or {}, "validationStatus": candidate.get("validationStatus", "PENDING"),
+                "validationNote": candidate.get("validationNote"), "validatedBy": candidate.get("validatedBy"),
+                "validatedAt": candidate.get("validatedAt"), "targetStatus": candidate.get("targetStatus"),
+                "processedEntityId": candidate.get("processedEntityId"), "processedAt": candidate.get("processedAt"),
+                "location": {field: entity.get(field) for field in LOCATION_FIELDS}}
+
+    @staticmethod
+    def _materialize_import_candidate(candidate: dict[str, Any], target_status: str, actor: str, note: str | None) -> dict[str, Any]:
+        entity = {**(candidate.get("entity") or {})}
+        entity_id = entity["id"]
+        existing = GeoHandler.store.items.get(entity_id)
+        if existing and existing.get("status") == "APPROVED" and target_status != "RETIRED":
+            raise ValueError("an approved entity cannot be changed by import processing")
+        entity["status"] = target_status
+        entity["updatedAt"] = now()
+        if target_status == "APPROVED":
+            previous = existing.get("status") if existing else "CANDIDATE"
+            entity["review"] = {"reviewerId": actor, "reviewedAt": entity["updatedAt"], "note": note or "Approved from validated import"}
+            entity.setdefault("reviewHistory", []).append({"action": "APPROVED", "reviewerId": actor,
+                                                               "note": note or "Approved from validated import",
+                                                               "occurredAt": entity["updatedAt"], "previousStatus": previous})
+        GeoHandler.store.items[entity_id] = entity
+        GeoHandler._create_conflation_candidates(entity)
+        if existing:
+            GeoHandler.store.event("geodata.entity.import-updated.v1", "entity", entity_id,
+                                   {"entityId": entity_id, "status": target_status, "importRunId": candidate["importRunId"], "actor": actor})
+        else:
+            event_type = "geodata.entity.candidate.created.v1" if target_status == "CANDIDATE" else "geodata.entity.import-approved.v1"
+            GeoHandler.store.event(event_type, "entity", entity_id,
+                                   {"entityId": entity_id, "status": target_status, "importRunId": candidate["importRunId"], "actor": actor})
+        candidate["validationStatus"] = "PROCESSED"
+        candidate["targetStatus"] = target_status
+        candidate["processedEntityId"] = entity_id
+        candidate["processedAt"] = entity["updatedAt"]
+        candidate["entity"] = entity
+        return entity
+
+    @staticmethod
+    def _prepare_import_body(body: dict[str, Any], features: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        body = {**body}
         require(body, "adapter", "source")
         categories = entity_type_codes(body.get("entityTypes") or body.get("entityTypeCodes"), body.get("entityType"))
         if not categories:
@@ -334,21 +390,90 @@ class GeoHandler(JsonHandler):
             raise ValueError("unsupported adapter")
         if body.get("format", "GEOJSON").upper() not in SUPPORTED_FORMATS:
             raise ValueError("unsupported import format")
-        for feature in body["features"]:
+        for feature in features or []:
             feature["properties"] = {**(feature.get("properties") or {}), "entityType": body["entityType"], "entityTypes": categories, "entityTypeCodes": categories}
-        run_id = new_id()
-        GeoHandler.store.data.setdefault("importRuns", {})[run_id] = {"id": run_id, "programmeSlug": body.get("programmeSlug"),
+        return body
+
+    @staticmethod
+    def _create_import_run(body: dict[str, Any], filename: str | None, run_id: str | None = None) -> tuple[str, dict[str, Any]]:
+        run_id = run_id or new_id()
+        categories = entity_type_codes(body.get("entityTypes") or body.get("entityTypeCodes"), body.get("entityType"))
+        record = {"id": run_id, "programmeSlug": body.get("programmeSlug"),
             "adapter": body["adapter"], "format": body.get("format", "GEOJSON").upper(), "entityType": body["entityType"], "entityTypes": categories,
-            "source": body["source"], "filename": filename, "status": "QUEUED", "queuedAt": now(), "startedAt": now()}
+            "source": body["source"], "filename": filename, "status": "QUEUED", "queuedAt": now(), "featureCount": len(body.get("features") or []) or None}
+        GeoHandler.store.data.setdefault("importRuns", {})[run_id] = record
         GeoHandler.store.event("geodata.import.queued.v1", "import_run", run_id, {"importRunId": run_id,
             "programmeSlug": body.get("programmeSlug"), "adapter": body["adapter"], "format": body.get("format", "GEOJSON").upper(),
             "entityType": body["entityType"], "entityTypes": categories, "filename": filename})
+        return run_id, record
+
+    @staticmethod
+    def _complete_import_run(run_id: str, result: dict[str, Any]) -> dict[str, Any]:
+        run = GeoHandler.store.data.setdefault("importRuns", {})[run_id]
+        run.update({"status": "COMPLETED" if not result.get("errors") else "COMPLETED_WITH_ERRORS", "completedAt": now(),
+                    "stats": {key: len(result.get(key, [])) for key in ("preprocessed", "created", "updated", "skipped", "errors", "disappeared")},
+                    "errors": result.get("errors", []), "manifest": result.get("manifest"),
+                    "conflationCandidateCount": len(result.get("conflationCandidates", []))})
+        run["status"] = "PREPROCESSED" if not result.get("errors") else "PREPROCESSED_WITH_ERRORS"
+        GeoHandler.store.event("geodata.import.preprocessed.v1", "import_run", run_id, result)
+        return run
+
+    @staticmethod
+    def _fail_import_run(run_id: str, error: Exception) -> dict[str, Any]:
+        run = GeoHandler.store.data.setdefault("importRuns", {})[run_id]
+        run.update({"status": "FAILED", "completedAt": now(), "errors": [{"message": str(error)}],
+                    "stats": {"preprocessed": 0, "created": 0, "updated": 0, "skipped": 0, "errors": 1, "disappeared": 0}})
+        GeoHandler.store.event("geodata.import.failed.v1", "import_run", run_id, {"importRunId": run_id, "error": str(error)})
+        return run
+
+    @staticmethod
+    def _queue_import(body: dict[str, Any], p: dict[str, str], filename: str | None,
+                      loader: Any) -> dict[str, Any]:
+        run_id, record = GeoHandler._create_import_run(body, filename)
+
+        def process() -> None:
+            try:
+                with GeoHandler.store.lock:
+                    run = GeoHandler.store.data["importRuns"][run_id]
+                    run.update({"status": "PROCESSING", "startedAt": now()})
+                    GeoHandler.store.persist()
+                features = loader()
+                prepared = GeoHandler._prepare_import_body(body, features)
+                with GeoHandler.store.lock:
+                    GeoHandler.store.data["importRuns"][run_id]["featureCount"] = len(features)
+                result = GeoHandler._import_features({**prepared, "features": features}, run_id)
+                with GeoHandler.store.lock:
+                    GeoHandler._complete_import_run(run_id, result)
+                    GeoHandler.store.persist()
+            except Exception as error:  # imports must report failure in the run, not fail the HTTP request
+                with GeoHandler.store.lock:
+                    GeoHandler._fail_import_run(run_id, error)
+                    GeoHandler.store.persist()
+
+        # Persist the QUEUED record before the worker can finish, preventing a
+        # fast worker from being overwritten by the request handler's final save.
+        if p.get("_http"):
+            GeoHandler.store.persist()
+        GeoHandler.import_executor.submit(process)
+        return {**record, "queued": True, "_status": 202}
+
+    @staticmethod
+    def _start_import(body: dict[str, Any], features: list[dict[str, Any]], p: dict[str, str], filename: str | None = None) -> dict[str, Any]:
+        body = GeoHandler._prepare_import_body({**body, "features": features}, features)
+        if p.get("_http"):
+            return GeoHandler._queue_import(body, p, filename, lambda: features)
+        run_id, _ = GeoHandler._create_import_run(body, filename)
         result = GeoHandler._import_features(body, run_id)
-        GeoHandler.store.data["importRuns"][run_id].update({"status": "COMPLETED" if not result["errors"] else "COMPLETED_WITH_ERRORS",
-            "completedAt": now(), "stats": {key: len(result[key]) for key in ("created", "updated", "skipped", "errors", "disappeared")},
-            "manifest": result["manifest"]})
-        GeoHandler.store.event("geodata.import.accepted.v1", "import_run", run_id, result)
-        return {**result, "status": GeoHandler.store.data["importRuns"][run_id]["status"], "queued": True}
+        run = GeoHandler._complete_import_run(run_id, result)
+        if body.get("completeSnapshot") or body.get("autoProcess"):
+            candidate_ids = result.get("preprocessed", [])
+            if candidate_ids:
+                GeoHandler.validate_import_candidates(None, {"runId": run_id, "_body": {"candidateIds": candidate_ids, "reviewerId": body.get("processorId") or "scheduled-import"}})
+                queue = GeoHandler.process_import_candidates(None, {"runId": run_id, "_body": {"candidateIds": candidate_ids, "targetStatus": "CANDIDATE", "processorId": body.get("processorId") or "scheduled-import"}})
+                result = {**result, "created": queue.get("result", {}).get("created", []), "updated": queue.get("result", {}).get("updated", []),
+                          "processingQueueId": queue["id"]}
+            run = GeoHandler.store.data["importRuns"][run_id]
+        return {**result, "status": run["status"], "queued": True}
 
     @staticmethod
     def enqueue_import(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
@@ -363,8 +488,14 @@ class GeoHandler(JsonHandler):
             return GeoHandler.store.once(p.get("Idempotency-Key"), lambda: GeoHandler._start_import(body, body["features"], p, body.get("filename")))
         if "content" not in body or not isinstance(body["content"], str):
             raise ValueError("content must contain copied text or features must be a list")
-        features = parse_text(format_code, body["content"])
-        return GeoHandler.store.once(p.get("Idempotency-Key"), lambda: GeoHandler._start_import(body, features, p, body.get("filename")))
+        content = body["content"]
+        if not content.strip():
+            raise ValueError("content must not be empty")
+        if not p.get("_http"):
+            return GeoHandler.store.once(p.get("Idempotency-Key"), lambda: GeoHandler._start_import(body, parse_text(format_code, content), p, body.get("filename")))
+        prepared = GeoHandler._prepare_import_body({**body, "format": format_code})
+        return GeoHandler.store.once(p.get("Idempotency-Key"), lambda: GeoHandler._queue_import(
+            prepared, p, body.get("filename"), lambda: parse_text(format_code, content)))
 
     @staticmethod
     def upload_import(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
@@ -390,8 +521,12 @@ class GeoHandler(JsonHandler):
             body = {**body, "source": {**body["source"], "objectKey": object_key, "bucket": bucket, "sha256": stored["sha256"], "scan": scan}}
         except ImportError:
             body = {**body, "source": {**body["source"], "sha256": __import__("hashlib").sha256(content).hexdigest()}}
+        if format_code in TEXT_FORMATS or format_code in {"WFS", "ARCGIS_FEATURESERVER", "SHAPEFILE", "SHP"}:
+            prepared = GeoHandler._prepare_import_body({**body, "format": format_code})
+            return GeoHandler.store.once(p.get("Idempotency-Key"), lambda: GeoHandler._queue_import(
+                prepared, p, body["filename"], lambda: parse_uploaded(format_code, content, body["filename"])))
         try:
-            features = parse_uploaded(format_code, content, body["filename"])
+            parse_uploaded(format_code, content, body["filename"])
         except ValueError:
             if format_code not in {"OSM_PBF", "PARKSERVE_US"}:
                 raise
@@ -402,7 +537,7 @@ class GeoHandler(JsonHandler):
             GeoHandler.store.data.setdefault("importRuns", {})[run_id] = record
             GeoHandler.store.event("geodata.import.queued.v1", "import_run", run_id, {"importRunId": run_id, **record})
             return {**record, "queued": True, "_status": 202}
-        return GeoHandler.store.once(p.get("Idempotency-Key"), lambda: GeoHandler._start_import({**body, "format": format_code}, features, p, body["filename"]))
+        raise ValueError(f"unsupported upload format {format_code}")
 
     @staticmethod
     def import_manual(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
@@ -415,7 +550,136 @@ class GeoHandler(JsonHandler):
 
     @staticmethod
     def get_import(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
-        return GeoHandler.store.data.setdefault("importRuns", {})[p["runId"]]
+        run = GeoHandler.store.data.setdefault("importRuns", {})[p["runId"]]
+        candidates = [candidate for candidate in GeoHandler.store.data.setdefault("importCandidates", {}).values()
+                      if candidate.get("importRunId") == p["runId"]]
+        return {**run, "candidateCounts": {
+            "total": len(candidates),
+            "pending": sum(candidate.get("validationStatus") == "PENDING" for candidate in candidates),
+            "confirmed": sum(candidate.get("validationStatus") == "CONFIRMED" for candidate in candidates),
+            "processed": sum(candidate.get("validationStatus") == "PROCESSED" for candidate in candidates),
+            "rejected": sum(candidate.get("validationStatus") == "REJECTED" for candidate in candidates),
+        }}
+
+    @staticmethod
+    def list_import_candidates(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        query = parse_qs(urlparse(p.get("_path", "")).query)
+        run_id = p["runId"]
+        candidates = [GeoHandler._candidate_view(candidate) for candidate in GeoHandler.store.data.setdefault("importCandidates", {}).values()
+                      if candidate.get("importRunId") == run_id]
+        candidates.sort(key=lambda candidate: (candidate.get("ordinal") or 0, candidate["id"]))
+        return page_result(candidates, query)
+
+    @staticmethod
+    def validate_import_candidates(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        GeoHandler._authorize_import(p)
+        body = p["_body"]
+        require(body, "candidateIds", "reviewerId")
+        candidate_ids = body["candidateIds"]
+        if not isinstance(candidate_ids, list) or not candidate_ids:
+            raise ValueError("candidateIds must be a non-empty list")
+        run_id = p["runId"]
+        candidates = GeoHandler.store.data.setdefault("importCandidates", {})
+        selected = []
+        for candidate_id in candidate_ids:
+            candidate = candidates.get(str(candidate_id))
+            if not candidate or candidate.get("importRunId") != run_id:
+                raise ValueError(f"candidate {candidate_id} does not belong to import run")
+            if candidate.get("validationStatus") == "PROCESSED":
+                continue
+            candidate["validationStatus"] = "CONFIRMED"
+            candidate["validationNote"] = body.get("note")
+            candidate["validatedBy"] = body["reviewerId"]
+            candidate["validatedAt"] = now()
+            selected.append(str(candidate_id))
+        GeoHandler.store.event("geodata.import.candidates.validated.v1", "import_run", run_id,
+                               {"importRunId": run_id, "candidateIds": selected, "reviewerId": body["reviewerId"]})
+        if p.get("_http"):
+            GeoHandler.store.persist()
+        return {"importRunId": run_id, "candidateIds": selected, "validationStatus": "CONFIRMED", "_status": 200}
+
+    @staticmethod
+    def _process_import_queue(queue_id: str) -> None:
+        with GeoHandler.store.lock:
+            queue = GeoHandler.store.data.setdefault("importProcessingQueues", {}).get(queue_id)
+            if not queue:
+                return
+            if queue.get("status") == "COMPLETED":
+                return
+            queue.update({"status": "PROCESSING", "startedAt": now()})
+            GeoHandler.store.persist()
+        created, updated, errors = [], [], []
+        candidates = GeoHandler.store.data.setdefault("importCandidates", {})
+        for candidate_id in queue["candidateIds"]:
+            try:
+                with GeoHandler.store.lock:
+                    candidate = candidates.get(candidate_id)
+                    if not candidate:
+                        raise ValueError("pre-processed candidate no longer exists")
+                    if candidate.get("validationStatus") != "CONFIRMED":
+                        raise ValueError("candidate must be confirmed before processing")
+                    entity_id = candidate.get("entity", {}).get("id")
+                    was_existing = entity_id in GeoHandler.store.items
+                    GeoHandler._materialize_import_candidate(candidate, queue["targetStatus"], queue["requestedBy"], queue.get("note"))
+                    (updated if was_existing else created).append(entity_id)
+                    GeoHandler.store.persist()
+            except (TypeError, ValueError) as error:
+                errors.append({"candidateId": candidate_id, "message": str(error)})
+        with GeoHandler.store.lock:
+            queue = GeoHandler.store.data["importProcessingQueues"][queue_id]
+            queue.update({"status": "COMPLETED" if not errors else "FAILED", "completedAt": now(),
+                          "result": {"created": created, "updated": updated, "errors": errors}})
+            run = GeoHandler.store.data.setdefault("importRuns", {}).get(queue["importRunId"])
+            if run:
+                run.setdefault("stats", {}).update({"processed": len(created) + len(updated),
+                                                     "created": run.get("stats", {}).get("created", 0) + len(created),
+                                                     "updated": run.get("stats", {}).get("updated", 0) + len(updated),
+                                                     "processingErrors": len(errors)})
+                remaining = [candidate for candidate in candidates.values()
+                             if candidate.get("importRunId") == queue["importRunId"] and candidate.get("validationStatus") != "PROCESSED"]
+                if not remaining and not errors:
+                    run["status"] = "COMPLETED"
+                    run["completedAt"] = now()
+            GeoHandler.store.event("geodata.import.processing.completed.v1", "import_processing_queue", queue_id,
+                                   {"queueId": queue_id, "importRunId": queue["importRunId"], "status": queue["status"],
+                                    "targetStatus": queue["targetStatus"], **queue["result"]})
+            GeoHandler.store.persist()
+
+    @staticmethod
+    def process_import_candidates(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        GeoHandler._authorize_import(p)
+        body = p["_body"]
+        require(body, "candidateIds", "targetStatus", "processorId")
+        candidate_ids = body["candidateIds"]
+        target_status = str(body["targetStatus"]).upper()
+        if not isinstance(candidate_ids, list) or not candidate_ids:
+            raise ValueError("candidateIds must be a non-empty list")
+        if target_status not in {"CANDIDATE", "APPROVED"}:
+            raise ValueError("targetStatus must be CANDIDATE or APPROVED")
+        candidates = GeoHandler.store.data.setdefault("importCandidates", {})
+        for candidate_id in candidate_ids:
+            candidate = candidates.get(str(candidate_id))
+            if not candidate or candidate.get("importRunId") != p["runId"]:
+                raise ValueError(f"candidate {candidate_id} does not belong to import run")
+            if candidate.get("validationStatus") != "CONFIRMED":
+                raise ValueError("all selected candidates must be confirmed before processing")
+            if target_status == "APPROVED":
+                GeoHandler._authorize_review(p, candidate.get("entity") or {})
+        queue_id = new_id()
+        queue = {"id": queue_id, "importRunId": p["runId"], "candidateIds": [str(value) for value in candidate_ids],
+                 "targetStatus": target_status, "requestedBy": body["processorId"], "note": body.get("note"),
+                 "status": "QUEUED", "requestedAt": now(), "startedAt": None, "completedAt": None, "result": {}}
+        GeoHandler.store.data.setdefault("importProcessingQueues", {})[queue_id] = queue
+        GeoHandler.store.event("geodata.import.processing.queued.v1", "import_processing_queue", queue_id,
+                               {"queueId": queue_id, "importRunId": p["runId"], "candidateIds": queue["candidateIds"],
+                                "targetStatus": target_status, "requestedBy": body["processorId"],
+                                "natsSubject": "myota.geodata.import.process.v1"})
+        if p.get("_http"):
+            GeoHandler.store.persist()
+            GeoHandler.import_executor.submit(GeoHandler._process_import_queue, queue_id)
+        else:
+            GeoHandler._process_import_queue(queue_id)
+        return {**queue, "queued": True, "_status": 202}
 
     @staticmethod
     def create_schedule(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
@@ -478,7 +742,7 @@ class GeoHandler(JsonHandler):
                 continue
             features.append({"type": "Feature", "id": entity["id"], "geometry": entity["geometry"],
                              "properties": {"name": entity["name"], "programmeSlug": entity["programmeSlug"], "status": entity["status"],
-                             "entityType": entity.get("entityType"), "entityTypes": entity_categories(entity), "sourceRef": entity.get("sourceRef"),
+                                            "entityType": entity.get("entityType"), "entityTypes": entity_categories(entity), "sourceRef": entity.get("sourceRef"),
                                             "continentCode": entity.get("continentCode"), "countryCode": entity.get("countryCode"),
                                             "regionCode": entity.get("regionCode"), "city": entity.get("city")}})
         truncated = len(features) > max_features
@@ -541,13 +805,27 @@ class GeoHandler(JsonHandler):
         categories = entity_type_codes(properties.get("entityTypes") or properties.get("entityTypeCodes"), properties.get("entityType"))
         if not categories:
             raise ValueError("entityTypes must contain at least one shared entity category code")
-        properties["candidateSource"] = {"type": "COMMUNITY_PROPOSAL", "proposalId": new_id(), "proposerId": body.get("proposerId") or p.get("accountId")}
+        properties["candidateSource"] = {
+            "type": "COMMUNITY_PROPOSAL",
+            "proposalId": new_id(),
+            "proposerId": body.get("proposerId") or p.get("accountId"),
+        }
         feature["properties"] = properties
-        return GeoHandler.import_manual(None, {"_body": {"programmeSlug": body.get("programmeSlug"), "adapter": "MANUAL",
+        result = GeoHandler.import_manual(None, {"_body": {"programmeSlug": body.get("programmeSlug"), "adapter": "MANUAL",
             "entityTypes": categories, "entityType": categories[0],
             "source": {**(body.get("source") or {}), "name": (body.get("source") or {}).get("name", "Manual proposal"),
                         "license": (body.get("source") or {}).get("license", "programme-supplied")}, "features": [feature]}})
+        # Community proposals are already an interactive, user-reviewed action;
+        # unlike bulk file/paste imports they enter the normal CANDIDATE queue
+        # immediately after the same normalization step.
+        run_id = result["importRunId"]
+        candidate_ids = result.get("preprocessed", [])
+        GeoHandler.validate_import_candidates(None, {"runId": run_id, "_body": {"candidateIds": candidate_ids, "reviewerId": body.get("proposerId") or p.get("accountId") or "proposal"}})
+        queue = GeoHandler.process_import_candidates(None, {"runId": run_id, "_body": {"candidateIds": candidate_ids, "targetStatus": "CANDIDATE", "processorId": body.get("proposerId") or p.get("accountId") or "proposal"}})
+        processed = queue.get("result", {}).get("created", []) + queue.get("result", {}).get("updated", [])
+        return {**result, "created": processed, "status": "COMPLETED", "processingQueueId": queue["id"]}
 
+    @staticmethod
     def review(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
         entity = GeoHandler.store.items[p["entityId"]]
         GeoHandler._authorize_review(p, entity)
@@ -775,7 +1053,7 @@ class GeoHandler(JsonHandler):
                 if len(ring) > 1 and ring[0] == ring[-1]:
                     ring = ring[:-1]
                 lines = [ring]
-            converted = {"type": "LineString" if target == "LINESTRING" else "MultiLineString",
+            converted = {"type": target.title() if target == "LINESTRING" else "MultiLineString",
                          "coordinates": lines[0] if target == "LINESTRING" else lines}
         elif target in {"POLYGON", "MULTIPOLYGON"} and current == "POINT":
             coordinates = geometry.get("coordinates") or []
@@ -783,8 +1061,9 @@ class GeoHandler(JsonHandler):
                 raise ValueError("the existing point geometry is invalid")
             lon, lat = float(coordinates[0]), float(coordinates[1])
             delta = 0.0005
-            polygon = [[[lon - delta, lat - delta], [lon + delta, lat - delta], [lon + delta, lat + delta],
-                        [lon - delta, lat + delta], [lon - delta, lat - delta]]]
+            polygon = [[[lon - delta, lat - delta], [lon + delta, lat - delta],
+                        [lon + delta, lat + delta], [lon - delta, lat + delta],
+                        [lon - delta, lat - delta]]]
             converted = {"type": "Polygon" if target == "POLYGON" else "MultiPolygon",
                          "coordinates": polygon if target == "POLYGON" else [polygon]}
         elif target in {"POLYGON", "MULTIPOLYGON"} and current in {"LINESTRING", "MULTILINESTRING"}:
@@ -860,11 +1139,14 @@ GeoHandler.routes = {
     ("GET", "/v1/geodata/tiles/{z}/{x}/{y}"): GeoHandler.tile,
     ("GET", "/v1/geodata/imports"): GeoHandler.list_imports,
     ("GET", "/v1/geodata/imports/{runId}"): GeoHandler.get_import,
+    ("GET", "/v1/geodata/imports/{runId}/candidates"): GeoHandler.list_import_candidates,
     ("GET", "/v1/geodata/refresh-schedules"): GeoHandler.list_schedules,
     ("GET", "/v1/geodata/conflation"): GeoHandler.list_conflation,
     ("POST", "/v1/geodata/imports/manual"): GeoHandler.import_manual,
     ("POST", "/v1/geodata/imports"): GeoHandler.enqueue_import,
     ("POST", "/v1/geodata/imports/upload"): GeoHandler.upload_import,
+    ("POST", "/v1/geodata/imports/{runId}/candidates/validate"): GeoHandler.validate_import_candidates,
+    ("POST", "/v1/geodata/imports/{runId}/process"): GeoHandler.process_import_candidates,
     ("POST", "/v1/geodata/refresh-schedules"): GeoHandler.create_schedule,
     ("POST", "/v1/geodata/refresh-schedules/{scheduleId}/run"): GeoHandler.refresh_import,
     ("POST", "/v1/geodata/proposals/draw"): GeoHandler.draw_proposal,

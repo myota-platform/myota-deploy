@@ -171,6 +171,18 @@ services:
       NATS_URL: nats://nats:4222
       OUTBOX_WORKER: geo-outbox
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
+  geodata-import-processing:
+    build: .
+    command: ["python3", "services/geodata_import_processing_worker.py"]
+    environment:
+      GEO_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_geo
+      MYOTA_REQUIRE_DURABILITY: "1"
+      MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      NATS_URL: nats://nats:4222
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+    depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}, seaweedfs: {condition: service_healthy}}
 volumes:
   postgis-data:
   nats-data:

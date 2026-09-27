@@ -25,11 +25,16 @@ WORKER_NAME = os.environ.get("OUTBOX_WORKER", "myota-outbox")
 
 async def ensure_stream(nc: NATS) -> None:
     js = nc.jetstream()
+    subjects = ["myota.events.>", "myota.geodata.>"]
     try:
-        await js.stream_info("MYOTA_EVENTS")
+        info = await js.stream_info("MYOTA_EVENTS")
+        if set(info.config.subjects or []) != set(subjects):
+            await js.update_stream(StreamConfig(name="MYOTA_EVENTS", subjects=subjects,
+                                                retention=RetentionPolicy.LIMITS, storage=StorageType.FILE,
+                                                max_age=30 * 24 * 60 * 60))
     except Exception:
         try:
-            await js.add_stream(StreamConfig(name="MYOTA_EVENTS", subjects=["myota.events.>"],
+            await js.add_stream(StreamConfig(name="MYOTA_EVENTS", subjects=subjects,
                                              retention=RetentionPolicy.LIMITS, storage=StorageType.FILE,
                                              max_age=30 * 24 * 60 * 60))
         except Exception:
@@ -85,7 +90,7 @@ async def main() -> None:
                 await asyncio.sleep(1)
                 continue
             try:
-                subject = "myota.events." + event["eventType"].replace(".", "_")
+                subject = event.get("payload", {}).get("natsSubject") or ("myota.events." + event["eventType"].replace(".", "_"))
                 await js.publish(subject, json.dumps(event).encode(), headers={"Nats-Msg-Id": event["eventId"]})
                 await asyncio.to_thread(mark_published, event["eventId"])
             except Exception as exc:
