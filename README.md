@@ -14,7 +14,7 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 
 - Amateur-radio-aware identity: operator/SWL participation, multiple callsigns, one primary callsign, lifecycle and verification fields.
 - Shared entity-category catalogue used by imports and review, with programme assignment and programme-owned rules handled separately.
-- Geodata lifecycle: imported candidate → community proposal → approver review → approved entity.
+- Geodata lifecycle: adapter/import run or community proposal → CANDIDATE → approver review → APPROVED or REJECTED; approved entities may only be RETIRED.
 - Provenance-aware imports with adapter metadata for ParkServe, OSM, government GIS and manual proposals.
 - Activation and QSO primitives with idempotency keys and audit events.
 - Programme-owned hunter/activator awards, nested conditions, achievement levels, asset metadata and issuance requests are served by the activity service on the same port (8004).
