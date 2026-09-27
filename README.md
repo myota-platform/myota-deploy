@@ -57,8 +57,10 @@ worker consumes `myota.geodata.import.process.v1` after an administrator
 confirms a selection. The activity migration is applied by
 `db/migrations/run.sh`; its canonical source is maintained in
 `myota-activity-service/migrations/` and reviewed into this deployment copy.
-Helm rendering and linting run in the GitHub workflow rather than being a
-local prerequisite.
+The Helm chart exposes the same processor as
+`geodataImportProcessing`, so production Kubernetes deployments keep the
+promotion worker separate from the HTTP geodata pods. Helm rendering and
+linting run in the GitHub workflow rather than being a local prerequisite.
 
 ### Migrating filesystem-adapter objects
 

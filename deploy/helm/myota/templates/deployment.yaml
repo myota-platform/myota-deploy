@@ -154,6 +154,33 @@ spec:
               value: "4"
           resources: {{- toYaml .Values.resources | nindent 12 }}
 {{- end }}
+{{- if .Values.geodataImportProcessing.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myota-geodata-import-processing
+spec:
+  replicas: {{ .Values.geodataImportProcessing.replicas }}
+  selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}}
+    spec:
+      containers:
+        - name: geodata-import-processing
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["python3", "services/geodata_import_processing_worker.py"]
+          env:
+            - name: GEO_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: geo-database-url}}
+            - name: MYOTA_REQUIRE_DURABILITY
+              value: "1"
+            - name: MYOTA_AUTH_SIGNING_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: signing-key}}
+            - name: NATS_URL
+              value: {{ .Values.nats.url | quote }}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -25,6 +25,9 @@ activityWorkers:
 activityNotifications:
   enabled: true
   replicas: 1
+geodataImportProcessing:
+  enabled: true
+  replicas: 1
 objectStorage:
   endpoint: http://myota-seaweedfs:8333
   publicEndpoint: ""
