@@ -2,6 +2,12 @@
 
 MyOTA is a programme-agnostic platform for outdoor activation programmes. MPOTA is represented as a configured programme, not as the platform itself. No rules or charter text are copied from POTA or any other programme: every programme supplies its own configuration, policy, eligibility, awards and public charter.
 
+The platform’s purpose and accessibility motivation are documented in the
+[project charter](https://github.com/myota-platform/myota-docs/blob/main/docs/project-charter.md).
+This repository supplies the durable local/production topology; it is not the
+owner of programme rules or the participant product. Remaining launch gates
+are tracked in the [charter gap analysis](https://github.com/myota-platform/myota-docs/blob/main/docs/charter-gap-analysis.md).
+
 This repository is a runnable vertical-slice bootstrap for the service repositories described in [`docs/repository-map.md`](docs/repository-map.md). It contains four independently runnable Python services, an API-first contract, a universal browser UI, PostGIS migrations, and Kubernetes/Helm deployment assets.
 
 ## What works now
