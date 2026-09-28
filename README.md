@@ -81,9 +81,13 @@ directory was present, and the old development object-store volume was empty.
 
 The admin web's Geodata imports page sends pasted GeoJSON/KML/GPX/WFS/ArcGIS
 documents to the geodata service and uploads binary/text files through the
-SeaweedFS-backed intake endpoint. Imports stop at `PREPROCESSED`; the admin
-modal provides compact paging, select-all, validation, and explicit promotion
-to `CANDIDATE` or `APPROVED`. The multi-select category control reads the
+SeaweedFS-backed intake endpoint. Imports stop at `PREPROCESSED`; normalized
+records are duplicate-checked against existing geometry and can carry a
+non-blocking `POSSIBLE_DUPLICATE` warning with comparison geometry. The admin
+page shows active runs in a dedicated pre-processing queue, separate from
+Geodata Review, with pending/confirmed counts. Its modal provides compact
+paging, select-all, duplicate map comparison, validation, and explicit
+promotion to `CANDIDATE` or `APPROVED`. The multi-select category control reads the
 complete shared Master data catalogue from the programme service database;
 imports may carry several categories, are not assigned to a programme, and
 enter as `CANDIDATE`. The first category remains the compatibility primary
