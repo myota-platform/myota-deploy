@@ -13,9 +13,12 @@ spec:
         - name: admin-web
           image: "{{ .Values.adminWeb.imageRepository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: MYOTA_GATEWAY_UPSTREAM
+              value: {{ .Values.adminWeb.gatewayUpstream | quote }}
           ports: [{name: http, containerPort: {{ .Values.adminWeb.port }}}]
-          readinessProbe: {httpGet: {path: /, port: http}}
-          livenessProbe: {httpGet: {path: /, port: http}}
+          readinessProbe: {httpGet: {path: /healthz, port: http}}
+          livenessProbe: {httpGet: {path: /healthz, port: http}}
           resources: {{- toYaml .Values.resources | nindent 12 }}
 ---
 apiVersion: v1
