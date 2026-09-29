@@ -62,6 +62,12 @@ The Helm chart exposes the same processor as
 promotion worker separate from the HTTP geodata pods. Helm rendering and
 linting run in the GitHub workflow rather than being a local prerequisite.
 
+The Vue administration image listens on port `8080` inside its container and
+is exposed on port `8090` by Compose and the Helm Service. Nginx proxies the
+same-origin `/v1` and `/healthz` requests to the gateway, so the browser does
+not need a separate API origin or CORS configuration. Local Vite development
+uses port `8090` and proxies to the gateway on `8080`.
+
 ### Migrating filesystem-adapter objects
 
 Before removing a development `MYOTA_OBJECT_STORAGE_LOCAL_DIR`, copy its

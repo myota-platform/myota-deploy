@@ -12,6 +12,7 @@ adminWeb:
   serviceType: ClusterIP
   port: 8080
   servicePort: 8090
+  gatewayUpstream: myota-gateway:8080
 services:
   identity: {port: 8001}
   programmes: {port: 8002}
