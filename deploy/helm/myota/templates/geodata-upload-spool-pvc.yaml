@@ -1,0 +1,14 @@
+{{- if .Values.geodataUploadSpool.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myota-geodata-upload-spool
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.geodataUploadSpool.storageClassName }}
+  storageClassName: {{ .Values.geodataUploadSpool.storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.geodataUploadSpool.storageSize | quote }}
+{{- end }}

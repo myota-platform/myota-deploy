@@ -71,12 +71,15 @@ services:
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_MAX_BODY_BYTES: "1073741824"
       MYOTA_UPLOAD_MAX_BYTES: "1073741824"
+      MYOTA_UPLOAD_SPOOL_DIR: /var/lib/myota/geodata-upload-spool
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://seaweedfs:8333
       MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
       NATS_URL: nats://nats:4222
     depends_on: {migrations: {condition: service_completed_successfully}, seaweedfs: {condition: service_healthy}, nats: {condition: service_started}}
+    volumes:
+      - geodata-upload-spool:/var/lib/myota/geodata-upload-spool
     ports: ["8003:8003"]
   activity:
     build: .
@@ -196,3 +199,4 @@ volumes:
   postgis-data:
   nats-data:
   seaweedfs-data:
+  geodata-upload-spool:

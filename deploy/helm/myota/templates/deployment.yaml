@@ -67,6 +67,8 @@ spec:
               value: {{ $.Values.geodataPipeline.maxBodyBytes | quote }}
             - name: MYOTA_UPLOAD_MAX_BYTES
               value: {{ $.Values.geodataPipeline.maxUploadBytes | quote }}
+            - name: MYOTA_UPLOAD_SPOOL_DIR
+              value: /var/lib/myota/geodata-upload-spool
             - name: GEODATA_TILE_CACHE_TTL_SECONDS
               value: {{ $.Values.geodataPipeline.tileCacheTtlSeconds | quote }}
             {{- end }}
@@ -85,9 +87,20 @@ spec:
                   optional: true
             {{- end }}
           ports: [{name: http, containerPort: {{ $cfg.port }} }]
+          {{- if and (eq $name "geodata") $.Values.geodataUploadSpool.enabled }}
+          volumeMounts:
+            - name: geodata-upload-spool
+              mountPath: /var/lib/myota/geodata-upload-spool
+          {{- end }}
           readinessProbe: {httpGet: {path: /healthz, port: http}}
           livenessProbe: {httpGet: {path: /healthz, port: http}}
           resources: {{- toYaml $.Values.resources | nindent 12 }}
+      {{- if and (eq $name "geodata") $.Values.geodataUploadSpool.enabled }}
+      volumes:
+        - name: geodata-upload-spool
+          persistentVolumeClaim:
+            claimName: myota-geodata-upload-spool
+      {{- end }}
 ---
 {{- end }}
 {{- if .Values.activityWorkers.enabled }}

@@ -56,6 +56,10 @@ geodataPipeline:
     enabled: false
     schedule: "0 * * * *"
     image: ghcr.io/myota-platform/myota-service:latest
+geodataUploadSpool:
+  enabled: true
+  storageSize: 20Gi
+  storageClassName: ""
 postgres:
   host: postgis
   coreDatabase: myota_core
