@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
+import shutil
 import urllib.request
 from pathlib import Path
 
@@ -54,7 +55,7 @@ class ObjectStore:
     @staticmethod
     def scan_content(content: bytes, filename: str = "upload") -> dict[str, object]:
         """Run the local safety gate and optionally ask a ClamAV HTTP sidecar."""
-        max_bytes = int(os.environ.get("MYOTA_UPLOAD_MAX_BYTES", str(25 * 1024 * 1024)))
+        max_bytes = int(os.environ.get("MYOTA_UPLOAD_MAX_BYTES", str(1024 * 1024 * 1024)))
         if len(content) > max_bytes:
             raise ValueError(f"{filename} exceeds the configured upload limit")
         if b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*" in content:
@@ -74,6 +75,25 @@ class ObjectStore:
             except Exception as exc:
                 raise ValueError("malware scanner is unavailable; upload was not stored") from exc
         return {"status": "CLEAN", "sha256": hashlib.sha256(content).hexdigest(), "size": len(content)}
+
+    @staticmethod
+    def scan_path(path: str | Path, filename: str = "upload") -> dict[str, object]:
+        max_bytes = int(os.environ.get("MYOTA_UPLOAD_MAX_BYTES", str(1024 * 1024 * 1024)))
+        size = Path(path).stat().st_size
+        if size > max_bytes:
+            raise ValueError(f"{filename} exceeds the configured upload limit")
+        marker = b"X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*"
+        digest = hashlib.sha256()
+        previous = b""
+        found = False
+        with Path(path).open("rb") as source:
+            while chunk := source.read(8 * 1024 * 1024):
+                digest.update(chunk)
+                found = found or marker in previous + chunk
+                previous = (previous + chunk)[-len(marker):]
+        if found:
+            raise ValueError("malware scan rejected the upload")
+        return {"status": "CLEAN", "sha256": digest.hexdigest(), "size": size}
 
     def _local_path(self, bucket: str, object_key: str) -> Path:
         if not self.local_root:
@@ -108,6 +128,26 @@ class ObjectStore:
             self._ensure_bucket(client, bucket)
             client.put_object(Bucket=bucket, Key=object_key, Body=content, ContentType=content_type)
         return {"sha256": checksum, "size": len(content), "storedAt": object_key}
+
+    def put_file(self, bucket: str, object_key: str, path: str | Path, content_type: str,
+                 sha256: str | None = None, size: int | None = None) -> dict[str, object]:
+        source = Path(path)
+        size = source.stat().st_size if size is None else size
+        if sha256 is None:
+            digest = hashlib.sha256()
+            with source.open("rb") as stream:
+                while chunk := stream.read(8 * 1024 * 1024):
+                    digest.update(chunk)
+            sha256 = digest.hexdigest()
+        if self.local_root:
+            shutil.copyfile(source, self._local_path(bucket, object_key))
+        else:
+            client = self._s3()
+            if not client:
+                raise RuntimeError("boto3 is not installed")
+            self._ensure_bucket(client, bucket)
+            client.upload_file(str(source), bucket, object_key, ExtraArgs={"ContentType": content_type})
+        return {"sha256": sha256, "size": size, "storedAt": object_key}
 
     def get(self, bucket: str, object_key: str) -> bytes | None:
         if self.local_root:

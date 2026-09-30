@@ -49,7 +49,8 @@ geodataPipeline:
   enabled: true
   maxImportFeatures: 5000
   maxCoordinates: 50000
-  maxBodyBytes: 33554432
+  maxBodyBytes: 1073741824
+  maxUploadBytes: 1073741824
   tileCacheTtlSeconds: 60
   importer:
     enabled: false

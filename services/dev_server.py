@@ -4,8 +4,10 @@ import mimetypes
 import os
 import sys
 import threading
+import http.client
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -72,16 +74,39 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         name, port, _ = target
         base_url = os.environ.get(f"MYOTA_{name.upper()}_URL", f"http://127.0.0.1:{port}")
-        body = self.rfile.read(int(self.headers.get("Content-Length", "0"))) if self.command == "POST" else None
-        request = urllib.request.Request(f"{base_url}{self.path}", data=body, method=self.command,
-                                         headers={"Content-Type": self.headers.get("Content-Type", "application/json"),
-                                                  "Authorization": self.headers.get("Authorization", ""),
-                                                  "Idempotency-Key": self.headers.get("Idempotency-Key", ""),
-                                                  "X-Request-ID": self.headers.get("X-Request-ID", ""),
-                                                  "X-Correlation-ID": self.headers.get("X-Correlation-ID", "")})
+        headers = {"Content-Type": self.headers.get("Content-Type", "application/json"),
+                   "Authorization": self.headers.get("Authorization", ""),
+                   "Idempotency-Key": self.headers.get("Idempotency-Key", ""),
+                   "X-Request-ID": self.headers.get("X-Request-ID", ""),
+                   "X-Correlation-ID": self.headers.get("X-Correlation-ID", "")}
         try:
-            with urllib.request.urlopen(request, timeout=float(os.environ.get("MYOTA_PROXY_TIMEOUT_SECONDS", "60"))) as response:
+            if self.command == "POST":
+                # Stream large multipart bodies through the development gateway
+                # instead of materializing a second 1 GB copy in its process.
+                parsed = urlsplit(base_url)
+                connection_type = http.client.HTTPSConnection if parsed.scheme == "https" else http.client.HTTPConnection
+                connection = connection_type(parsed.netloc, timeout=float(os.environ.get("MYOTA_PROXY_UPLOAD_TIMEOUT_SECONDS", "3600")))
+                connection.putrequest(self.command, f"{parsed.path.rstrip('/')}{self.path}")
+                for key, value in headers.items():
+                    if value:
+                        connection.putheader(key, value)
+                length = int(self.headers.get("Content-Length", "0"))
+                connection.putheader("Content-Length", str(length))
+                connection.endheaders()
+                remaining = length
+                while remaining:
+                    chunk = self.rfile.read(min(8 * 1024 * 1024, remaining))
+                    if not chunk:
+                        raise ConnectionError("client upload ended before Content-Length")
+                    connection.send(chunk)
+                    remaining -= len(chunk)
+                response = connection.getresponse()
                 self._json(response.status, response.read())
+                connection.close()
+            else:
+                request = urllib.request.Request(f"{base_url}{self.path}", method=self.command, headers=headers)
+                with urllib.request.urlopen(request, timeout=float(os.environ.get("MYOTA_PROXY_TIMEOUT_SECONDS", "60"))) as response:
+                    self._json(response.status, response.read())
         except urllib.error.HTTPError as exc:
             self._json(exc.code, exc.read())
         except Exception as exc:

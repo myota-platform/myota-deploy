@@ -69,7 +69,8 @@ services:
       GEO_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
-      MYOTA_MAX_BODY_BYTES: "33554432"
+      MYOTA_MAX_BODY_BYTES: "1073741824"
+      MYOTA_UPLOAD_MAX_BYTES: "1073741824"
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://seaweedfs:8333
       MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
@@ -126,6 +127,7 @@ services:
       MYOTA_PROGRAMMES_URL: http://programmes:8002
       MYOTA_GEODATA_URL: http://geodata:8003
       MYOTA_ACTIVITY_URL: http://activity:8004
+      MYOTA_PROXY_UPLOAD_TIMEOUT_SECONDS: "3600"
     depends_on: [identity, programmes, geodata, activity]
     ports: ["8080:8080"]
   admin-web:
