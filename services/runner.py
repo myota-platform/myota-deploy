@@ -12,8 +12,8 @@ elif service == "programmes":
     from programmes import ProgrammeHandler, seed as seed_service
     port, handler, seed = 8002, ProgrammeHandler, seed_service
 elif service == "geodata":
-    from geodata import GeoHandler, seed as seed_service
-    port, handler, seed = 8003, GeoHandler, seed_service
+    from geodata import GeoHandler
+    port, handler, seed = 8003, GeoHandler, GeoHandler.store.hydrate
 elif service == "activity":
     from activity import ActivityHandler
     port, handler, seed = 8004, ActivityHandler, lambda: None
@@ -23,7 +23,7 @@ else:
 seed()
 if service == "geodata":
     # Requeue imports abandoned by the previous geodata instance only after
-    # durable state and seed data have been hydrated.
+    # durable geodata state has been hydrated.
     handler.recover_import_runs()
 if service == "identity":
     bootstrap_admin()

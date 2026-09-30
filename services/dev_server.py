@@ -17,7 +17,6 @@ from activity import ActivityHandler
 from geodata import GeoHandler
 from identity import IdentityHandler, bootstrap_admin, seed as seed_identity
 from programmes import ProgrammeHandler, seed as seed_programmes
-from geodata import seed as seed_geodata
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -130,7 +129,6 @@ def main() -> None:
     seed_identity()
     bootstrap_admin()
     seed_programmes()
-    seed_geodata()
     for port, handler in ((8001, IdentityHandler), (8002, ProgrammeHandler), (8003, GeoHandler), (8004, ActivityHandler)):
         threading.Thread(target=start, args=(port, handler), daemon=True).start()
     print("MyOTA dev gateway: http://127.0.0.1:8080")

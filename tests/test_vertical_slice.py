@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1] / "services"))
 
 from activity import ActivityHandler
-from geodata import GeoHandler, seed as seed_geo
+from geodata import GeoHandler
 from identity import IdentityHandler, seed as seed_identity
 from import_adapters import normalize
 from programmes import ProgrammeHandler, seed as seed_programmes
@@ -19,7 +19,27 @@ class VerticalSliceTests(unittest.TestCase):
             handler.store.items.clear()
             handler.store.events.clear()
             handler.store.idempotency.clear()
-        seed_identity(); seed_programmes(); seed_geo()
+        seed_identity(); seed_programmes()
+        GeoHandler.store.items.update({
+            "fixture-candidate": {
+                "id": "fixture-candidate", "programmeSlug": "mpota", "entityType": "MUNICIPAL_PARK",
+                "entityTypes": ["MUNICIPAL_PARK"], "entityTypeCodes": ["MUNICIPAL_PARK"],
+                "name": "Candidate fixture", "status": "CANDIDATE",
+                "geometry": {"type": "Point", "coordinates": [-5.99, 37.39]},
+            },
+            "fixture-approved-mpota": {
+                "id": "fixture-approved-mpota", "programmeSlug": "mpota", "entityType": "MUNICIPAL_PARK",
+                "entityTypes": ["MUNICIPAL_PARK"], "entityTypeCodes": ["MUNICIPAL_PARK"],
+                "name": "Approved fixture one", "status": "APPROVED",
+                "geometry": {"type": "Point", "coordinates": [-5.98, 37.39]},
+            },
+            "fixture-approved-regional": {
+                "id": "fixture-approved-regional", "programmeSlug": "regional-ota", "entityType": "NATURE_RESERVE",
+                "entityTypes": ["NATURE_RESERVE"], "entityTypeCodes": ["NATURE_RESERVE"],
+                "name": "Approved fixture two", "status": "APPROVED",
+                "geometry": {"type": "Point", "coordinates": [-5.97, 37.39]},
+            },
+        })
 
     def test_identity_supports_operator_multiple_callsigns_and_primary(self) -> None:
         result = IdentityHandler.create_account(None, {"_body": {"displayName": "SWL", "participationType": "SWL"}, "Idempotency-Key": "account-1"})
