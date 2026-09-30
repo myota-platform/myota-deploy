@@ -16,7 +16,7 @@ adminWeb:
 services:
   identity: {port: 8001}
   programmes: {port: 8002}
-  geodata: {port: 8003}
+  geodata: {port: 8003, importWorkers: 1}
   activity: {port: 8004, replicas: 3, dbPoolMax: 12, httpMaxWorkers: 64}
 activityWorkers:
   enabled: true

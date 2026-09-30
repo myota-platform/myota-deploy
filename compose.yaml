@@ -1,6 +1,7 @@
 services:
   postgis:
     image: postgis/postgis:16-3.4
+    restart: unless-stopped
     environment:
       POSTGRES_USER: myota
       POSTGRES_PASSWORD: myota-dev-only
@@ -33,6 +34,7 @@ services:
     depends_on: {postgis: {condition: service_healthy}}
   identity:
     build: .
+    restart: unless-stopped
     env_file: [.env]
     environment:
       SERVICE: identity
@@ -45,6 +47,7 @@ services:
     ports: ["8001:8001"]
   identity-maintenance:
     build: .
+    restart: unless-stopped
     command: ["python3", "services/identity_maintenance.py"]
     environment:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
@@ -54,6 +57,7 @@ services:
     depends_on: {migrations: {condition: service_completed_successfully}}
   programmes:
     build: .
+    restart: unless-stopped
     environment:
       SERVICE: programmes
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
@@ -63,6 +67,7 @@ services:
     ports: ["8002:8002"]
   geodata:
     build: ../myota-geodata-service
+    restart: unless-stopped
     env_file: [../myota-geodata-service/.env]
     environment:
       SERVICE: geodata
@@ -71,6 +76,8 @@ services:
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_MAX_BODY_BYTES: "1073741824"
       MYOTA_UPLOAD_MAX_BYTES: "1073741824"
+      # Keep large dataset parsing bounded; uploads remain concurrent and durable.
+      MYOTA_IMPORT_WORKERS: "1"
       MYOTA_UPLOAD_SPOOL_DIR: /var/lib/myota/geodata-upload-spool
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://seaweedfs:8333
       MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:8333
@@ -83,6 +90,7 @@ services:
     ports: ["8003:8003"]
   activity:
     build: .
+    restart: unless-stopped
     environment:
       SERVICE: activity
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
@@ -100,6 +108,7 @@ services:
     ports: ["8004:8004"]
   activity-worker:
     build: .
+    restart: unless-stopped
     command: ["python3", "services/activity_worker.py"]
     environment:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
@@ -115,6 +124,7 @@ services:
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}, seaweedfs: {condition: service_healthy}}
   activity-notifications:
     build: .
+    restart: unless-stopped
     command: ["python3", "services/activity_notification_consumer.py"]
     environment:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
@@ -124,6 +134,7 @@ services:
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   gateway:
     build: .
+    restart: unless-stopped
     command: ["python3", "services/dev_server.py"]
     environment:
       MYOTA_IDENTITY_URL: http://identity:8001
@@ -135,6 +146,7 @@ services:
     ports: ["8080:8080"]
   admin-web:
     build: ../myota-admin-web
+    restart: unless-stopped
     environment:
       MYOTA_GATEWAY_UPSTREAM: gateway:8080
     depends_on: [gateway]
@@ -146,11 +158,13 @@ services:
       retries: 12
   nats:
     image: nats:2.10-alpine
+    restart: unless-stopped
     command: ["-js", "-sd", "/data"]
     volumes: ["nats-data:/data"]
     ports: ["4222:4222"]
   seaweedfs:
     image: chrislusf/seaweedfs:latest@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882
+    restart: unless-stopped
     command: ["mini", "-dir=/data", "-ip.bind=0.0.0.0"]
     environment:
       AWS_ACCESS_KEY_ID: myota-s3
@@ -167,6 +181,7 @@ services:
       retries: 20
   outbox-core:
     build: .
+    restart: unless-stopped
     command: ["python3", "services/outbox_worker.py"]
     environment:
       OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
@@ -176,6 +191,7 @@ services:
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   outbox-geo:
     build: .
+    restart: unless-stopped
     command: ["python3", "services/outbox_worker.py"]
     environment:
       OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_geo
@@ -185,6 +201,7 @@ services:
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   geodata-import-processing:
     build: .
+    restart: unless-stopped
     command: ["python3", "services/geodata_import_processing_worker.py"]
     environment:
       GEO_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_geo

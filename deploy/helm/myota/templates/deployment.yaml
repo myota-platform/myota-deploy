@@ -67,6 +67,8 @@ spec:
               value: {{ $.Values.geodataPipeline.maxBodyBytes | quote }}
             - name: MYOTA_UPLOAD_MAX_BYTES
               value: {{ $.Values.geodataPipeline.maxUploadBytes | quote }}
+            - name: MYOTA_IMPORT_WORKERS
+              value: {{ default 1 $cfg.importWorkers | quote }}
             - name: MYOTA_UPLOAD_SPOOL_DIR
               value: /var/lib/myota/geodata-upload-spool
             - name: GEODATA_TILE_CACHE_TTL_SECONDS
