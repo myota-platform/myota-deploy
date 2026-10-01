@@ -8,7 +8,15 @@ echo "Running dependency-free regression tests"
 (cd "${ROOT_DIR}" && python3 -m unittest discover -s tests -v)
 
 echo "Checking the frozen contract and typed clients"
-(cd "${CONTRACTS_DIR}" && python3 scripts/check_generated_clients.py)
+(cd "${CONTRACTS_DIR}" && \
+  python3 scripts/check_contract_phase0.py \
+    --canonical contracts/openapi.yaml \
+    --mirror openapi.yaml \
+    --mirror ../myota-platform/contracts/openapi.yaml \
+    --service-root "${ROOT_DIR}/services" \
+    --semantic-baseline contracts/semantic-duplicates.json \
+    --inventory-out contracts/route-inventory.json && \
+  python3 scripts/check_generated_clients.py)
 
 for endpoint in \
   http://127.0.0.1:8080/healthz \
