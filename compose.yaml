@@ -69,6 +69,9 @@ services:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_OTEL_ENABLED: "1"
+      OTEL_SERVICE_NAME: myota-programmes
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on: {migrations: {condition: service_completed_successfully}}
     ports: ["8002:8002"]
   geodata:
@@ -238,6 +241,15 @@ services:
       - prometheus-data:/prometheus
     depends_on: [otel-collector]
     ports: ["9090:9090"]
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    profiles: [observability]
+    restart: unless-stopped
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    volumes:
+      - ./observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    ports: ["9093:9093"]
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.135.0
     profiles: [observability]
@@ -268,7 +280,7 @@ services:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
-    depends_on: [prometheus, tempo]
+    depends_on: [prometheus, alertmanager, tempo]
     ports: ["3000:3000"]
 volumes:
   postgis-data:
@@ -278,3 +290,4 @@ volumes:
   prometheus-data:
   grafana-data:
   tempo-data:
+  alertmanager-data:

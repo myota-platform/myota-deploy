@@ -36,21 +36,28 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 Every HTTP service exposes a Prometheus-compatible `/metrics` endpoint with
 real service-owned aggregates. The OpenTelemetry SDK exports request metrics
 and traces to the collector; the collector scrapes the service endpoints and
-forwards metrics to Prometheus and traces to Tempo. The dashboard includes
-users, geodata entities, imports, programmes, QSOs, participants, awards,
-workers, queue lag, HTTP errors and OTel latency. It does not contain synthetic
-business values.
+forwards metrics to Prometheus and traces to Tempo. The operations dashboard
+includes users, geodata entities, imports, programmes, QSOs, participants,
+awards, workers, queue lag, HTTP errors and OTel latency. The separate
+`MyOTA API performance` dashboard repeats request-rate, p95 latency, 5xx rate,
+and availability graphs for every observed service; each graph is split by
+normalized API route and HTTP method. It does not contain synthetic business
+values.
 
 Enable the optional local stack with:
 
 ```bash
-docker compose --profile observability up -d prometheus grafana
+docker compose --profile observability up -d prometheus alertmanager grafana
 ```
 
 Grafana is available at http://localhost:3000, Prometheus at
-http://localhost:9090, the collector exporter at http://localhost:8889, and
-Tempo at http://localhost:3200. The same collector, dashboard and scrape
-configuration are available in the Helm chart with
+http://localhost:9090, Alertmanager at http://localhost:9093, the collector
+exporter at http://localhost:8889, and Tempo at http://localhost:3200. Prometheus
+rules cover collector/service availability, per-route 5xx rate, and per-route
+p95 latency. Grafana-managed rules use the same Prometheus signals and forward
+to the local Alertmanager receiver; the local profile deliberately does not
+invent an email or paging destination. The same collector, dashboards, alert
+rules and scrape configuration are available in the Helm chart with
 `observability.enabled=true`. Deprecated routes remain aliases until the
 documented sunset; use service-owned telemetry to monitor remaining callers
 before removing them.

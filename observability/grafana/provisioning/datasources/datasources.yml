@@ -13,3 +13,11 @@ datasources:
     access: proxy
     url: http://tempo:3200
     editable: false
+  - name: MyOTA Alertmanager
+    uid: myota-alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: false
+    jsonData:
+      implementation: prometheus

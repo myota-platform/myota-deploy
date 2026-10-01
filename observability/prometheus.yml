@@ -5,6 +5,11 @@ global:
 rule_files:
   - /etc/prometheus/rules.yml
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [alertmanager:9093]
+
 scrape_configs:
   # The collector is the single scrape boundary. It combines service-owned
   # Prometheus endpoints with OTLP metrics before Prometheus stores them.

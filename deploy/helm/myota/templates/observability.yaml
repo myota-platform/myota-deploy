@@ -12,12 +12,22 @@ data:
 {{ .Files.Get "observability/prometheus.yml" | indent 4 }}
   rules.yml: |
 {{ .Files.Get "observability/rules.yml" | indent 4 }}
+  alertmanager.yml: |
+{{ .Files.Get "observability/alertmanager.yml" | indent 4 }}
   dashboards.yml: |
 {{ .Files.Get "observability/grafana/provisioning/dashboards/dashboards.yml" | indent 4 }}
   datasources.yml: |
 {{ .Files.Get "observability/grafana/provisioning/datasources/datasources.yml" | indent 4 }}
   myota-operations.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-operations.json" | indent 4 }}
+  myota-api-performance.json: |
+{{ .Files.Get "observability/grafana/dashboards/myota-api-performance.json" | indent 4 }}
+  alert-rules.yml: |
+{{ .Files.Get "observability/grafana/provisioning/alerting/alert-rules.yml" | indent 4 }}
+  contact-points.yml: |
+{{ .Files.Get "observability/grafana/provisioning/alerting/contact-points.yml" | indent 4 }}
+  policies.yml: |
+{{ .Files.Get "observability/grafana/provisioning/alerting/policies.yml" | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -123,6 +133,40 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: {{ include "myota.fullname" (dict "name" "alertmanager") }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: {{ include "myota.name" . }}, app.kubernetes.io/component: alertmanager}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: {{ include "myota.name" . }}, app.kubernetes.io/component: alertmanager}
+    spec:
+      containers:
+        - name: alertmanager
+          image: {{ .Values.observability.alertmanager.image }}
+          args: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+          ports: [{name: http, containerPort: 9093}]
+          volumeMounts:
+            - {name: config, mountPath: /etc/alertmanager/alertmanager.yml, subPath: alertmanager.yml}
+            - {name: data, mountPath: /alertmanager}
+      volumes:
+        - name: config
+          configMap: {name: {{ include "myota.fullname" (dict "name" "observability") }}}
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+spec:
+  selector: {app.kubernetes.io/name: {{ include "myota.name" . }}, app.kubernetes.io/component: alertmanager}
+  ports: [{name: http, port: {{ .Values.observability.alertmanager.servicePort }}, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: {{ include "myota.fullname" (dict "name" "grafana") }}
 spec:
   replicas: 1
@@ -142,7 +186,11 @@ spec:
           volumeMounts:
             - {name: config, mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml, subPath: dashboards.yml}
             - {name: config, mountPath: /etc/grafana/provisioning/datasources/datasources.yml, subPath: datasources.yml}
+            - {name: config, mountPath: /etc/grafana/provisioning/alerting/alert-rules.yml, subPath: alert-rules.yml}
+            - {name: config, mountPath: /etc/grafana/provisioning/alerting/contact-points.yml, subPath: contact-points.yml}
+            - {name: config, mountPath: /etc/grafana/provisioning/alerting/policies.yml, subPath: policies.yml}
             - {name: config, mountPath: /var/lib/grafana/dashboards/myota-operations.json, subPath: myota-operations.json}
+            - {name: config, mountPath: /var/lib/grafana/dashboards/myota-api-performance.json, subPath: myota-api-performance.json}
       volumes:
         - name: config
           configMap: {name: {{ include "myota.fullname" (dict "name" "observability") }}}

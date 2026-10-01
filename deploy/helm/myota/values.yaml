@@ -87,6 +87,9 @@ observability:
   prometheus:
     image: prom/prometheus:v2.55.1
     servicePort: 9090
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    servicePort: 9093
   grafana:
     image: grafana/grafana:11.2.2
     servicePort: 3000
