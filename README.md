@@ -20,6 +20,10 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 - Programme-owned hunter/activator awards, nested conditions, achievement levels, asset metadata and issuance requests are served by the activity service on the same port (8004).
 - Universal themed frontend with verified/candidate map distinction.
 - OpenAPI and event contracts, ADRs, migration notes, health endpoints and local deployment manifests.
+- Phase 2 geodata resource aliases are deployed alongside the legacy routes:
+  consolidated imports, proposals, metadata, categories, geometry, reviews,
+  bbox-filtered entity collections, and confirmation-based deletion jobs. See
+  the [Phase 2 resource model](https://github.com/myota-platform/myota-docs/blob/main/docs/api-phase2-geodata-resource-model.md).
 
 Unit tests may use a small in-memory adapter when they explicitly omit a
 database URL. The local Compose runtime is different: every database-backed
