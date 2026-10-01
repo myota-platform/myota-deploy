@@ -75,4 +75,12 @@ nats:
 outbox:
   enabled: true
   maxAttempts: 12
+observability:
+  enabled: false
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    servicePort: 9090
+  grafana:
+    image: grafana/grafana:11.2.2
+    servicePort: 3000
 resources: {}

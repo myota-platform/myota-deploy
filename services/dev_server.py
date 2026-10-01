@@ -17,6 +17,7 @@ from activity import ActivityHandler
 from geodata import GeoHandler
 from identity import IdentityHandler, bootstrap_admin, seed as seed_identity
 from programmes import ProgrammeHandler, seed as seed_programmes
+from metrics import METRICS
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -48,6 +49,14 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
+        if self.path.split("?", 1)[0] == "/metrics":
+            body = METRICS.render().encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path == "/healthz":
             self._json(200, b'{"status":"ok","service":"gateway"}')
             return
@@ -128,6 +137,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             self._json(503, ('{"error":"service_unavailable","message":"%s"}' % str(exc)).encode())
 
     def _json(self, status: int, data: bytes, upstream_headers: object = ()) -> None:
+        METRICS.inc("myota_gateway_requests_total", {"method": self.command, "route": self.path.split("?", 1)[0], "status": status})
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))

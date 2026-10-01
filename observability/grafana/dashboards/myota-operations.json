@@ -1,0 +1,17 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "panels": [
+    {"type":"timeseries","title":"Legacy action-route traffic","gridPos":{"h":8,"w":12,"x":0,"y":0},"targets":[{"expr":"sum by (service, route) (rate(myota_legacy_route_requests_total[5m]))","legendFormat":"{{service}} {{route}}"}]},
+    {"type":"timeseries","title":"Activity job backlog and lag","gridPos":{"h":8,"w":12,"x":12,"y":0},"targets":[{"expr":"myota_activity_jobs_queued_total","legendFormat":"queued"},{"expr":"myota_activity_job_lag_seconds","legendFormat":"lag seconds"}]},
+    {"type":"timeseries","title":"Failed jobs and corrections","gridPos":{"h":8,"w":12,"x":0,"y":8},"targets":[{"expr":"myota_activity_jobs_failed_total","legendFormat":"failed jobs"},{"expr":"myota_activity_qso_corrections_pending","legendFormat":"pending corrections"}]},
+    {"type":"timeseries","title":"HTTP errors by service","gridPos":{"h":8,"w":12,"x":12,"y":8},"targets":[{"expr":"sum by (service, status) (rate(myota_http_requests_total{status=~\"4..|5..\"}[5m]))","legendFormat":"{{service}} {{status}}"}]}
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["myota", "operations", "phase4"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "MyOTA operations",
+  "uid": "myota-operations"
+}

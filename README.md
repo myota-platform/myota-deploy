@@ -31,6 +31,24 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
   version scoped, and statistics rebuilds replace the current deterministic
   snapshot set. See the [Phase 3 job record](https://github.com/myota-platform/myota-docs/blob/main/docs/api-phase3-activity-award-jobs.md).
 
+## Phase 4 operations
+
+Every HTTP service exposes a lightweight Prometheus-compatible `/metrics`
+endpoint. It records request status, deprecated alias traffic, and (on the
+activity service) durable job backlog, oldest queued-job lag, failed jobs, and
+pending QSO corrections. The included operations dashboard is provisioned by
+Prometheus and Grafana when the optional Compose profile is enabled:
+
+```bash
+docker compose --profile observability up -d prometheus grafana
+```
+
+Grafana is available at http://localhost:3000 and Prometheus at
+http://localhost:9090. The same dashboard and scrape configuration are
+available in the Helm chart with `observability.enabled=true`. Deprecated
+routes remain aliases until the documented sunset; use the legacy traffic
+panel to monitor remaining callers before removing them.
+
 Unit tests may use a small in-memory adapter when they explicitly omit a
 database URL. The local Compose runtime is different: every database-backed
 service has a PostgreSQL/PostGIS URL and `MYOTA_REQUIRE_DURABILITY=1`. A

@@ -1,7 +1,10 @@
-.PHONY: test run compose-up colima-start k8s-install
+.PHONY: test verify-phase4 run compose-up colima-start k8s-install
 
 test:
 	python3 -m unittest discover -s tests -v
+
+verify-phase4:
+	./scripts/verify_phase4.sh
 
 run:
 	MYOTA_REQUIRE_DURABILITY=1 \
