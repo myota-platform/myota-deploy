@@ -448,6 +448,14 @@ class IdentityHandler(JsonHandler):
                 if field == "status" and body[field] not in ("ACTIVE", "DEACTIVATED"):
                     raise ValueError("status must be ACTIVE or DEACTIVATED")
                 account[field] = body[field]
+        if body.get("anonymize") and account.get("status") == "DEACTIVATED":
+            account.update({"displayName": "Deactivated account", "email": None})
+            for session in IdentityHandler._bucket("sessions").values():
+                if session["accountId"] == account["id"]:
+                    session["revokedAt"] = now()
+            IdentityHandler._audit("identity.account.deactivated.v1", {
+                "accountId": account["id"], "anonymized": True,
+            }, account["id"])
         if body.get("password"):
             IdentityHandler._set_password(account["id"], body["password"])
             for session in IdentityHandler._bucket("sessions").values():
@@ -706,6 +714,7 @@ IdentityHandler.routes = {
     ("GET", "/v1/identity/accounts/{accountId}"): IdentityHandler.get_account,
     ("PATCH", "/v1/identity/accounts/{accountId}"): IdentityHandler.update_admin_account,
     ("PATCH", "/v1/identity/roles/{roleCode}"): IdentityHandler.update_admin_role,
+    ("POST", "/v1/identity/roles"): IdentityHandler.create_admin_role,
     ("PUT", "/v1/identity/accounts/{accountId}/role-assignments"): IdentityHandler.update_admin_account,
     ("PUT", "/v1/identity/accounts/{accountId}/primary-callsign"): IdentityHandler.set_primary,
     ("GET", "/v1/identity/admin/accounts"): IdentityHandler.list_admin_accounts,

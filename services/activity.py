@@ -381,6 +381,18 @@ class ActivityHandler(JsonHandler):
             qso_count += before - len(activation["qsos"])
         return {"entityId": p["entityId"], "deletedBy": deleted_by, "qsoCount": qso_count, "activationCount": activation_count, "awardRecalculationJobs": []}
 
+    @staticmethod
+    def cascade_delete_entity_resource(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        """Create the activity-side cascade for a geodata deletion job."""
+        body = p.get("_body") or {}
+        entity_id = body.get("entityId")
+        if not entity_id:
+            raise ValueError("entityId is required")
+        return ActivityHandler.cascade_delete_entity(None, {
+            **p, "entityId": str(entity_id),
+            "_body": {"deletedBy": body.get("deletedBy")},
+        })
+
 
 ActivityHandler.routes = {
     ("GET", "/v1/activations"): ActivityHandler.list_activations,
@@ -407,6 +419,8 @@ ActivityHandler.routes = {
     ("GET", "/v1/notifications"): ActivityHandler.list_notifications,
     ("GET", "/v1/activations/admin/entities/{entityId}/deletion-impact"): ActivityHandler.entity_deletion_impact,
     ("POST", "/v1/activations/admin/entities/{entityId}/cascade-delete"): ActivityHandler.cascade_delete_entity,
+    ("GET", "/v1/activations/entity-deletion-impacts/{entityId}"): ActivityHandler.entity_deletion_impact,
+    ("POST", "/v1/activations/entity-deletion-cascades"): ActivityHandler.cascade_delete_entity_resource,
     **AwardsHandler.routes,
 }
 
@@ -416,6 +430,8 @@ ActivityHandler.deprecated_routes = {
     ("POST", "/v1/adif/imports"),
     ("POST", "/v1/qso-corrections/{correctionId}/review"),
     ("POST", "/v1/statistics/rebuild"),
+    ("GET", "/v1/activations/admin/entities/{entityId}/deletion-impact"),
+    ("POST", "/v1/activations/admin/entities/{entityId}/cascade-delete"),
 }
 
 AwardsHandler.store = ActivityHandler.store
