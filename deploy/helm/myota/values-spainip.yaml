@@ -1,0 +1,64 @@
+# Non-secret deployment settings for the spainip.es K3s cluster.
+image:
+  tag: latest
+  pullPolicy: Always
+
+ingress:
+  enabled: true
+  className: traefik
+  host: myota.top
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  tls:
+    enabled: true
+    secretName: myota-top-tls
+
+postgres:
+  enabled: true
+  image: postgres:16-alpine
+  postgisImage: postgis/postgis:16-3.4
+  coreStorageSize: 10Gi
+  activityStorageSize: 50Gi
+  geoStorageSize: 100Gi
+  storageClassName: ""
+  coreHost: myota-core-postgres
+  corePort: 5432
+  activityHost: myota-activity-postgres
+  activityPort: 5432
+  geoHost: myota-geo-postgis
+  geoPort: 5432
+  coreDatabase: myota_core
+  activityDatabase: myota_activity
+  geoDatabase: myota_geo
+  existingSecret: myota-postgres
+
+objectStorage:
+  endpoint: http://myota-seaweedfs:8333
+  publicEndpoint: ""
+  existingSecret: myota-s3-auth
+
+seaweedfs:
+  enabled: true
+  storageSize: 100Gi
+  storageClassName: ""
+
+nats:
+  persistence:
+    enabled: true
+    storageSize: 8Gi
+    storageClassName: ""
+
+geodataUploadSpool:
+  enabled: true
+  storageSize: 20Gi
+  storageClassName: ""
+
+auth:
+  environment: production
+  existingSecret: myota-auth
+  maintenanceEnabled: true
+
+# Keep disabled until you have configured an authenticated Grafana ingress or
+# another private access path and selected persistent storage for its data.
+observability:
+  enabled: false

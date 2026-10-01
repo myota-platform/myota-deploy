@@ -30,6 +30,9 @@ jobs:
       - name: Lint chart
         run: helm lint deploy/helm/myota --values deploy/helm/myota/values.yaml
 
+      - name: Lint Spainip Fleet values
+        run: helm lint deploy/helm/myota --values deploy/helm/myota/values-spainip.yaml
+
       - name: Render chart
         run: >-
           helm template myota deploy/helm/myota
@@ -38,3 +41,10 @@ jobs:
           --values deploy/helm/myota/values.yaml
           --set geodataPipeline.importer.enabled=true
           --set geodataPipeline.importer.image=ghcr.io/myota-platform/myota-service:ci
+
+      - name: Render Spainip Fleet release
+        run: >-
+          helm template myota deploy/helm/myota
+          --namespace myota
+          --kube-version 1.30.0
+          --values deploy/helm/myota/values-spainip.yaml

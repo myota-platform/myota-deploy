@@ -1,4 +1,19 @@
 {{- if .Values.outbox.enabled }}
+{{- if .Values.nats.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myota-nats-data
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- if .Values.nats.persistence.storageClassName }}
+  storageClassName: {{ .Values.nats.persistence.storageClassName | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.nats.persistence.storageSize | quote }}
+---
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +30,14 @@ spec:
           args: ["-js", "-sd", "/data"]
           ports: [{name: client, containerPort: 4222}]
           volumeMounts: [{name: data, mountPath: /data}]
-      volumes: [{name: data, emptyDir: {}}]
+      volumes:
+        - name: data
+          {{- if .Values.nats.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: myota-nats-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
 ---
 apiVersion: v1
 kind: Service

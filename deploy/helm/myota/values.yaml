@@ -4,20 +4,47 @@ image:
   pullPolicy: IfNotPresent
 gateway:
   imageRepository: ghcr.io/myota-platform/myota-gateway
+  imageTag: ""
   serviceType: ClusterIP
   port: 8080
+  proxyUploadTimeoutSeconds: 3600
 adminWeb:
   enabled: true
   imageRepository: ghcr.io/myota-platform/myota-admin-web
+  imageTag: ""
   serviceType: ClusterIP
   port: 8080
   servicePort: 8090
   gatewayUpstream: myota-gateway:8080
+ingress:
+  enabled: false
+  className: traefik
+  host: myota.top
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: myota-top-tls
 services:
-  identity: {port: 8001}
-  programmes: {port: 8002}
-  geodata: {port: 8003, importWorkers: 1}
-  activity: {port: 8004, replicas: 3, dbPoolMax: 12, httpMaxWorkers: 64}
+  identity:
+    imageRepository: ghcr.io/myota-platform/myota-identity-service
+    imageTag: ""
+    port: 8001
+  programmes:
+    imageRepository: ghcr.io/myota-platform/myota-programme-service
+    imageTag: ""
+    port: 8002
+  geodata:
+    imageRepository: ghcr.io/myota-platform/myota-geodata-service
+    imageTag: ""
+    port: 8003
+    importWorkers: 1
+  activity:
+    imageRepository: ghcr.io/myota-platform/myota-activity-service
+    imageTag: ""
+    port: 8004
+    replicas: 3
+    dbPoolMax: 12
+    httpMaxWorkers: 64
 activityWorkers:
   enabled: true
   replicas: 2
@@ -42,11 +69,15 @@ objectStorage:
 seaweedfs:
   enabled: false
   image: chrislusf/seaweedfs:latest
-  accessKey: myota-s3
-  secretKey: change-me
   storageSize: 20Gi
+  storageClassName: ""
 geodataPipeline:
   enabled: true
+  locationEnrichment:
+    enabled: true
+    existingSecret: myota-geodata-enrichment
+    apiKeyKey: api-key
+    language: en
   maxImportFeatures: 5000
   maxCoordinates: 50000
   maxBodyBytes: 1073741824
@@ -61,9 +92,20 @@ geodataUploadSpool:
   storageSize: 20Gi
   storageClassName: ""
 postgres:
+  enabled: false
+  image: postgres:16-alpine
+  postgisImage: postgis/postgis:16-3.4
+  coreStorageSize: 10Gi
+  activityStorageSize: 50Gi
+  geoStorageSize: 100Gi
+  storageClassName: ""
+  resources: {}
   coreHost: myota-core-postgres
+  corePort: 5432
   activityHost: myota-activity-postgres
+  activityPort: 5432
   geoHost: myota-geo-postgis
+  geoPort: 5432
   coreDatabase: myota_core
   activityDatabase: myota_activity
   geoDatabase: myota_geo
@@ -75,6 +117,10 @@ auth:
 nats:
   image: nats:2.10-alpine
   url: nats://myota-nats:4222
+  persistence:
+    enabled: true
+    storageSize: 8Gi
+    storageClassName: ""
 outbox:
   enabled: true
   maxAttempts: 12

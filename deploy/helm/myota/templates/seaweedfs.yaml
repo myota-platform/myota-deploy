@@ -8,6 +8,9 @@ spec:
   resources:
     requests:
       storage: {{ .Values.seaweedfs.storageSize | quote }}
+  {{- if .Values.seaweedfs.storageClassName }}
+  storageClassName: {{ .Values.seaweedfs.storageClassName | quote }}
+  {{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,9 +29,15 @@ spec:
           command: ["weed", "mini", "-dir=/data", "-ip.bind=0.0.0.0"]
           env:
             - name: AWS_ACCESS_KEY_ID
-              value: {{ .Values.seaweedfs.accessKey | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.objectStorage.existingSecret }}
+                  key: {{ .Values.objectStorage.accessKeyKey }}
             - name: AWS_SECRET_ACCESS_KEY
-              value: {{ .Values.seaweedfs.secretKey | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.objectStorage.existingSecret }}
+                  key: {{ .Values.objectStorage.secretKeyKey }}
           ports:
             - {name: s3, containerPort: 8333}
             - {name: filer, containerPort: 8888}

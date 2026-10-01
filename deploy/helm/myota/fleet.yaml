@@ -1,0 +1,9 @@
+defaultNamespace: myota
+helm:
+  chart: .
+  releaseName: myota
+  valuesFiles:
+    - values-spainip.yaml
+  waitForJobs: true
+  timeoutSeconds: 1800
+  atomic: true
