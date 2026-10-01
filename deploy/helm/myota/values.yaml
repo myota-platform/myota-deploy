@@ -77,6 +77,13 @@ outbox:
   maxAttempts: 12
 observability:
   enabled: false
+  otelCollector:
+    image: otel/opentelemetry-collector-contrib:0.135.0
+    servicePort: 4317
+    metricsPort: 8889
+  tempo:
+    image: grafana/tempo:2.6.1
+    servicePort: 3200
   prometheus:
     image: prom/prometheus:v2.55.1
     servicePort: 9090

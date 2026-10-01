@@ -1,0 +1,31 @@
+groups:
+  - name: myota-observability
+    rules:
+      - alert: MyOTAMetricsCollectorDown
+        expr: up{job="myota-otel-collector"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: MyOTA metrics collector is unavailable
+          description: Prometheus cannot scrape the OpenTelemetry Collector.
+      - alert: MyOTAServiceMetricsUnavailable
+        expr: up{job="myota-otel-collector", exported_job="myota-services"} == 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: MyOTA service metrics are unavailable
+          description: A service is not responding at its metrics endpoint.
+      - alert: MyOTAActivityQueueBacklog
+        expr: myota_activity_jobs_queued_total{job="myota-otel-collector"} > 100
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: MyOTA activity queue backlog is high
+          description: More than 100 activity jobs have been queued for 10 minutes.
+      - alert: MyOTAActivityDatabaseMetricsUnavailable
+        expr: myota_activity_metrics_database_unavailable{job="myota-otel-collector"} > 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: Activity database metrics are unavailable
+          description: Activity domain gauges cannot currently be read from PostgreSQL.

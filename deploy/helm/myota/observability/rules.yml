@@ -1,0 +1,18 @@
+groups:
+  - name: myota-observability
+    rules:
+      - alert: MyOTAMetricsCollectorDown
+        expr: up{job="myota-otel-collector"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: MyOTA metrics collector is unavailable}
+      - alert: MyOTAServiceMetricsUnavailable
+        expr: up{job="myota-otel-collector", exported_job="myota-services"} == 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: MyOTA service metrics are unavailable}
+      - alert: MyOTAActivityQueueBacklog
+        expr: myota_activity_jobs_queued_total{job="myota-otel-collector"} > 100
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: MyOTA activity queue backlog is high}

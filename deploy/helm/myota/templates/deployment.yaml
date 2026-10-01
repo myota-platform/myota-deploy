@@ -26,6 +26,14 @@ spec:
               value: {{ $.Values.auth.environment | quote }}
             - name: MYOTA_AUTH_SIGNING_KEY
               valueFrom: {secretKeyRef: {name: {{ $.Values.auth.existingSecret }}, key: signing-key}}
+            {{- if $.Values.observability.enabled }}
+            - name: MYOTA_OTEL_ENABLED
+              value: "1"
+            - name: OTEL_SERVICE_NAME
+              value: {{ printf "myota-%s" $name | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://myota-otel-collector:4317
+            {{- end }}
             {{- if eq $name "activity" }}
             - name: MYOTA_OBJECT_STORAGE_ENDPOINT
               value: {{ $.Values.objectStorage.endpoint | quote }}
@@ -222,6 +230,14 @@ spec:
               value: http://myota-geodata:8003
             - name: MYOTA_ACTIVITY_URL
               value: http://myota-activity:8004
+            {{- if .Values.observability.enabled }}
+            - name: MYOTA_OTEL_ENABLED
+              value: "1"
+            - name: OTEL_SERVICE_NAME
+              value: myota-gateway
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://myota-otel-collector:4317
+            {{- end }}
           ports: [{name: http, containerPort: 8080}]
           readinessProbe: {httpGet: {path: /, port: http}}
           livenessProbe: {httpGet: {path: /, port: http}}

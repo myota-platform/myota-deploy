@@ -1,13 +1,6 @@
 global:
   scrape_interval: 15s
 scrape_configs:
-  - job_name: myota-gateway
-    static_configs: [{targets: [myota-gateway:8080]}]
-  - job_name: myota-identity
-    static_configs: [{targets: [myota-identity:8001]}]
-  - job_name: myota-programmes
-    static_configs: [{targets: [myota-programmes:8002]}]
-  - job_name: myota-geodata
-    static_configs: [{targets: [myota-geodata:8003]}]
-  - job_name: myota-activity
-    static_configs: [{targets: [myota-activity:8004]}]
+  - job_name: myota-otel-collector
+    static_configs:
+      - targets: [myota-otel-collector:8889]

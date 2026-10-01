@@ -43,6 +43,9 @@ services:
       MYOTA_ENV: development
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_EXPOSE_DEV_TOKENS: "1"
+      MYOTA_OTEL_ENABLED: "1"
+      OTEL_SERVICE_NAME: myota-identity
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on: {migrations: {condition: service_completed_successfully}}
     ports: ["8001:8001"]
   identity-maintenance:
@@ -53,6 +56,9 @@ services:
       CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_OTEL_ENABLED: "1"
+      OTEL_SERVICE_NAME: myota-programmes
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       MYOTA_IDENTITY_MAINTENANCE_SECONDS: "3600"
     depends_on: {migrations: {condition: service_completed_successfully}}
   programmes:
@@ -84,6 +90,9 @@ services:
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
       NATS_URL: nats://nats:4222
+      MYOTA_OTEL_ENABLED: "1"
+      OTEL_SERVICE_NAME: myota-geodata
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on: {migrations: {condition: service_completed_successfully}, seaweedfs: {condition: service_healthy}, nats: {condition: service_started}}
     volumes:
       - geodata-upload-spool:/var/lib/myota/geodata-upload-spool
@@ -104,6 +113,9 @@ services:
       MYOTA_CERTIFICATE_BUCKET: myota-certificates
       MYOTA_ACTIVITY_DB_POOL_MAX: "12"
       MYOTA_HTTP_MAX_WORKERS: "64"
+      MYOTA_OTEL_ENABLED: "1"
+      OTEL_SERVICE_NAME: myota-activity
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on: {migrations: {condition: service_completed_successfully}, seaweedfs: {condition: service_healthy}}
     ports: ["8004:8004"]
   activity-worker:
@@ -142,6 +154,9 @@ services:
       MYOTA_GEODATA_URL: http://geodata:8003
       MYOTA_ACTIVITY_URL: http://activity:8004
       MYOTA_PROXY_UPLOAD_TIMEOUT_SECONDS: "3600"
+      MYOTA_OTEL_ENABLED: "1"
+      OTEL_SERVICE_NAME: myota-gateway
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on: [identity, programmes, geodata, activity]
     ports: ["8080:8080"]
   admin-web:
@@ -219,9 +234,28 @@ services:
     command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus"]
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/rules.yml:/etc/prometheus/rules.yml:ro
       - prometheus-data:/prometheus
-    depends_on: [gateway, identity, programmes, geodata, activity]
+    depends_on: [otel-collector]
     ports: ["9090:9090"]
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.135.0
+    profiles: [observability]
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on: [gateway, identity, programmes, geodata, activity, tempo]
+    ports: ["4317:4317", "4318:4318", "8889:8889"]
+  tempo:
+    image: grafana/tempo:2.6.1
+    profiles: [observability]
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./observability/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports: ["3200:3200"]
   grafana:
     image: grafana/grafana:11.2.2
     profiles: [observability]
@@ -234,7 +268,7 @@ services:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
-    depends_on: [prometheus]
+    depends_on: [prometheus, tempo]
     ports: ["3000:3000"]
 volumes:
   postgis-data:
@@ -243,3 +277,4 @@ volumes:
   geodata-upload-spool:
   prometheus-data:
   grafana-data:
+  tempo-data:
