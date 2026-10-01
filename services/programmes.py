@@ -162,6 +162,17 @@ class ProgrammeHandler(JsonHandler):
         return programme
 
     @staticmethod
+    def patch_programme(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        """Preferred resource update; retain the legacy action semantics."""
+        body = dict(p.get("_body") or {})
+        status = body.pop("status", None)
+        if status == "ARCHIVED":
+            return ProgrammeHandler.archive_programme(None, {**p, "_body": body})
+        if status not in (None, "ACTIVE"):
+            raise ValueError("status must be ACTIVE or ARCHIVED")
+        return ProgrammeHandler.update_programme(None, {**p, "_body": body})
+
+    @staticmethod
     def list_entity_types(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
         ProgrammeHandler._authorize_admin(p, p["slug"])
         programme = ProgrammeHandler.store.items[p["slug"]]
@@ -207,32 +218,45 @@ class ProgrammeHandler(JsonHandler):
     @staticmethod
     def assign_entity_type(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
         ProgrammeHandler._authorize_admin(p, p["slug"])
-        programme = ProgrammeHandler.store.items[p["slug"]]
         code = str(p["_body"].get("code", "")).strip().upper()
-        if code not in ProgrammeHandler._entity_type_catalog():
-            raise ValueError("unknown entity category")
-        codes = ProgrammeHandler._assigned_codes(programme)
-        if code not in codes:
-            codes.append(code)
-        ProgrammeHandler._set_programme_assignments(programme, codes)
-        programme["policyVersion"] = programme.get("policyVersion", 1) + 1
-        programme["updatedAt"] = now()
-        ProgrammeHandler.store.event("programme.entity-type.assigned.v1", "programme", programme["id"],
-                                     {"programmeSlug": p["slug"], "code": code})
-        return {"programmeSlug": p["slug"], "items": programme["entityTypes"], "assigned": ProgrammeHandler._entity_type_catalog()[code]}
+        def assign() -> dict[str, Any]:
+            programme = ProgrammeHandler.store.items[p["slug"]]
+            if code not in ProgrammeHandler._entity_type_catalog():
+                raise ValueError("unknown entity category")
+            codes = ProgrammeHandler._assigned_codes(programme)
+            if code not in codes:
+                codes.append(code)
+                ProgrammeHandler._set_programme_assignments(programme, codes)
+                programme["policyVersion"] = programme.get("policyVersion", 1) + 1
+                programme["updatedAt"] = now()
+                ProgrammeHandler.store.event("programme.entity-type.assigned.v1", "programme", programme["id"],
+                                             {"programmeSlug": p["slug"], "code": code})
+            return {"programmeSlug": p["slug"], "items": programme["entityTypes"], "assigned": ProgrammeHandler._entity_type_catalog()[code]}
+        return ProgrammeHandler.store.once(p.get("Idempotency-Key"), assign)
 
     @staticmethod
     def unassign_entity_type(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
         ProgrammeHandler._authorize_admin(p, p["slug"])
-        programme = ProgrammeHandler.store.items[p["slug"]]
         code = str(p["_body"].get("code", "")).strip().upper()
-        codes = [value for value in ProgrammeHandler._assigned_codes(programme) if value != code]
-        ProgrammeHandler._set_programme_assignments(programme, codes)
-        programme["policyVersion"] = programme.get("policyVersion", 1) + 1
-        programme["updatedAt"] = now()
-        ProgrammeHandler.store.event("programme.entity-type.unassigned.v1", "programme", programme["id"],
-                                     {"programmeSlug": p["slug"], "code": code})
-        return {"programmeSlug": p["slug"], "items": programme["entityTypes"]}
+        def unassign() -> dict[str, Any]:
+            programme = ProgrammeHandler.store.items[p["slug"]]
+            codes = [value for value in ProgrammeHandler._assigned_codes(programme) if value != code]
+            if codes != ProgrammeHandler._assigned_codes(programme):
+                ProgrammeHandler._set_programme_assignments(programme, codes)
+                programme["policyVersion"] = programme.get("policyVersion", 1) + 1
+                programme["updatedAt"] = now()
+                ProgrammeHandler.store.event("programme.entity-type.unassigned.v1", "programme", programme["id"],
+                                             {"programmeSlug": p["slug"], "code": code})
+            return {"programmeSlug": p["slug"], "items": programme["entityTypes"]}
+        return ProgrammeHandler.store.once(p.get("Idempotency-Key"), unassign)
+
+    @staticmethod
+    def assign_entity_type_resource(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        return ProgrammeHandler.assign_entity_type(None, {**p, "_body": {"code": p["categoryCode"]}})
+
+    @staticmethod
+    def unassign_entity_type_resource(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        return ProgrammeHandler.unassign_entity_type(None, {**p, "_body": {"code": p["categoryCode"]}})
 
     @staticmethod
     def save_entity_type(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
@@ -332,6 +356,22 @@ class ProgrammeHandler(JsonHandler):
         return content
 
     @staticmethod
+    def patch_content(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        body = dict(p.get("_body") or {})
+        status = body.pop("status", None)
+        action = {**p, "_body": body}
+        if status == "UNDER_REVIEW":
+            return ProgrammeHandler.submit_content(None, action)
+        if status in ("APPROVED", "CHANGES_REQUESTED"):
+            return ProgrammeHandler.review_content(None, {**p, "_body": {**body, "decision": status}})
+        if status == "PUBLISHED":
+            return ProgrammeHandler.publish_content(None, action)
+        content = ProgrammeHandler._content_bucket().get(p["contentId"])
+        if content is None:
+            raise ValueError("content not found")
+        return ProgrammeHandler.save_content(None, {**p, "_body": {**content, **body, "contentId": p["contentId"]}})
+
+    @staticmethod
     def content_coverage(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
         ProgrammeHandler._authorize_admin(p, p["slug"])
         programme = ProgrammeHandler.store.items[p["slug"]]
@@ -418,6 +458,22 @@ class ProgrammeHandler(JsonHandler):
         return {"draft": draft, "programme": programme}
 
     @staticmethod
+    def patch_policy_draft(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
+        body = dict(p.get("_body") or {})
+        status = body.pop("status", None)
+        action = {**p, "_body": body}
+        if status == "UNDER_REVIEW":
+            return ProgrammeHandler.submit_policy_draft(None, action)
+        if status in ("APPROVED", "CHANGES_REQUESTED"):
+            return ProgrammeHandler.review_policy_draft(None, {**p, "_body": {**body, "decision": status}})
+        if status == "PUBLISHED":
+            return ProgrammeHandler.publish_policy_draft(None, action)
+        draft = ProgrammeHandler._policy_bucket().get(p["draftId"])
+        if draft is None:
+            raise ValueError("policy draft not found")
+        return ProgrammeHandler.save_policy_draft(None, {**p, "_body": {**draft, **body, "draftId": p["draftId"]}})
+
+    @staticmethod
     def get_policy(_: JsonHandler, p: dict[str, str]) -> dict[str, Any]:
         programme = ProgrammeHandler.store.items[p["slug"]]
         return {"programmeSlug": programme["slug"], "version": programme.get("policyVersion", 1),
@@ -428,6 +484,7 @@ ProgrammeHandler.routes = {
     ("GET", "/v1/programmes"): ProgrammeHandler.list_programmes,
     ("GET", "/v1/programmes/{slug}"): ProgrammeHandler.get_programme,
     ("POST", "/v1/programmes"): ProgrammeHandler.create_programme,
+    ("PATCH", "/v1/programmes/{slug}"): ProgrammeHandler.patch_programme,
     ("POST", "/v1/programmes/{slug}/update"): ProgrammeHandler.update_programme,
     ("GET", "/v1/entity-types"): ProgrammeHandler.list_entity_type_catalog,
     ("POST", "/v1/entity-types"): ProgrammeHandler.save_entity_type_catalog,
@@ -435,6 +492,8 @@ ProgrammeHandler.routes = {
     ("POST", "/v1/programmes/{slug}/entity-types"): ProgrammeHandler.save_entity_type,
     ("POST", "/v1/programmes/{slug}/entity-types/assign"): ProgrammeHandler.assign_entity_type,
     ("POST", "/v1/programmes/{slug}/entity-types/unassign"): ProgrammeHandler.unassign_entity_type,
+    ("PUT", "/v1/programmes/{slug}/entity-types/{categoryCode}"): ProgrammeHandler.assign_entity_type_resource,
+    ("DELETE", "/v1/programmes/{slug}/entity-types/{categoryCode}"): ProgrammeHandler.unassign_entity_type_resource,
     ("POST", "/v1/programmes/{slug}/archive"): ProgrammeHandler.archive_programme,
     ("GET", "/v1/programmes/{slug}/policy"): ProgrammeHandler.get_policy,
     ("GET", "/v1/programmes/{slug}/content"): ProgrammeHandler.list_content,
@@ -443,11 +502,26 @@ ProgrammeHandler.routes = {
     ("POST", "/v1/programmes/{slug}/content/{contentId}/submit"): ProgrammeHandler.submit_content,
     ("POST", "/v1/programmes/{slug}/content/{contentId}/review"): ProgrammeHandler.review_content,
     ("POST", "/v1/programmes/{slug}/content/{contentId}/publish"): ProgrammeHandler.publish_content,
+    ("PATCH", "/v1/programmes/{slug}/content/{contentId}"): ProgrammeHandler.patch_content,
     ("GET", "/v1/programmes/{slug}/policy-drafts"): ProgrammeHandler.list_policy_drafts,
     ("POST", "/v1/programmes/{slug}/policy-drafts"): ProgrammeHandler.save_policy_draft,
     ("POST", "/v1/programmes/{slug}/policy-drafts/{draftId}/submit"): ProgrammeHandler.submit_policy_draft,
     ("POST", "/v1/programmes/{slug}/policy-drafts/{draftId}/review"): ProgrammeHandler.review_policy_draft,
     ("POST", "/v1/programmes/{slug}/policy-drafts/{draftId}/publish"): ProgrammeHandler.publish_policy_draft,
+    ("PATCH", "/v1/programmes/{slug}/policy-drafts/{draftId}"): ProgrammeHandler.patch_policy_draft,
+}
+
+ProgrammeHandler.deprecated_routes = {
+    ("POST", "/v1/programmes/{slug}/update"),
+    ("POST", "/v1/programmes/{slug}/archive"),
+    ("POST", "/v1/programmes/{slug}/entity-types/assign"),
+    ("POST", "/v1/programmes/{slug}/entity-types/unassign"),
+    ("POST", "/v1/programmes/{slug}/content/{contentId}/submit"),
+    ("POST", "/v1/programmes/{slug}/content/{contentId}/review"),
+    ("POST", "/v1/programmes/{slug}/content/{contentId}/publish"),
+    ("POST", "/v1/programmes/{slug}/policy-drafts/{draftId}/submit"),
+    ("POST", "/v1/programmes/{slug}/policy-drafts/{draftId}/review"),
+    ("POST", "/v1/programmes/{slug}/policy-drafts/{draftId}/publish"),
 }
 
 
