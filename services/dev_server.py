@@ -18,6 +18,7 @@ from geodata import GeoHandler
 from identity import IdentityHandler, bootstrap_admin, seed as seed_identity
 from programmes import ProgrammeHandler, seed as seed_programmes
 from metrics import METRICS
+from otel import telemetry_for
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -42,6 +43,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         return
 
     def do_OPTIONS(self) -> None:
+        self._begin_request()
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, Idempotency-Key, X-Request-ID, X-Correlation-ID")
@@ -49,6 +51,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
+        self._begin_request()
         if self.path.split("?", 1)[0] == "/metrics":
             body = METRICS.render().encode()
             self.send_response(200)
@@ -66,15 +69,19 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self._proxy()
 
     def do_POST(self) -> None:
+        self._begin_request()
         self._proxy()
 
     def do_PUT(self) -> None:
+        self._begin_request()
         self._proxy()
 
     def do_PATCH(self) -> None:
+        self._begin_request()
         self._proxy()
 
     def do_DELETE(self) -> None:
+        self._begin_request()
         self._proxy()
 
     def _static(self) -> None:
@@ -138,6 +145,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
     def _json(self, status: int, data: bytes, upstream_headers: object = ()) -> None:
         METRICS.inc("myota_gateway_requests_total", {"method": self.command, "route": self.path.split("?", 1)[0], "status": status})
+        request_telemetry = getattr(self, "_otel_request", None)
+        if request_telemetry:
+            request_telemetry.finish(status, self.path.split("?", 1)[0])
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
@@ -149,6 +159,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
                     self.send_header(name, value)
         self.end_headers()
         self.wfile.write(data)
+
+    def _begin_request(self) -> None:
+        self._otel_request = telemetry_for("myota-gateway").start_request(self.command, self.path.split("?", 1)[0])
 
 
 def start(port: int, handler: type[BaseHTTPRequestHandler]) -> None:

@@ -15,6 +15,21 @@ class ProgrammeHandler(JsonHandler):
     service = "programme-service"
     store = Store("programmes", "CORE_DATABASE_URL")
 
+    @classmethod
+    def metrics_extra(cls) -> dict[str, float]:
+        with cls.store.lock:
+            programmes = list(cls.store.items.values())
+            catalogue = list(cls._entity_type_catalog().values())
+            assignments = sum(len(cls._assigned_codes(programme)) for programme in programmes)
+        result: dict[str, float] = {
+            "myota_programmes_total": float(len(programmes)),
+            "myota_programme_entity_categories_total": float(len(catalogue)),
+            "myota_programme_category_assignments_total": float(assignments),
+        }
+        for status in ("ACTIVE", "ARCHIVED"):
+            result[f'myota_programmes_by_status_total{{status="{status}"}}'] = float(sum(programme.get("status") == status for programme in programmes))
+        return result
+
     @staticmethod
     def _authorize_admin(p: dict[str, str], slug: str | None = None) -> None:
         if not p.get("_http"):

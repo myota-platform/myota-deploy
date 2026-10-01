@@ -586,6 +586,45 @@ class ActivityRepository:
                 "SELECT DISTINCT a.programme_slug,a.operator_id,'ACTIVATOR',a.entity_id FROM activity_qso q JOIN activity_activation a ON a.id=q.activation_id WHERE a.operator_id=%s AND q.status <> 'VOID' "
                 "UNION SELECT DISTINCT q.programme_slug,q.hunter_id,'HUNTER',q.worked_entity_id FROM activity_qso q WHERE q.hunter_id=%s AND q.worked_entity_id IS NOT NULL AND q.status <> 'VOID'", (subject_id, subject_id))
 
+    def metrics(self) -> dict[str, float]:
+        """Return real, database-backed gauges for the operational dashboard."""
+        with self.transaction() as connection:
+            jobs = connection.execute("SELECT status, count(*) AS total FROM activity_job GROUP BY status").fetchall()
+            lag = connection.execute("SELECT COALESCE(EXTRACT(EPOCH FROM (now() - min(available_at))), 0) FROM activity_job WHERE status='QUEUED' AND available_at <= now()").fetchone()
+            corrections = connection.execute("SELECT count(*) FROM activity_qso_correction WHERE status='PENDING'").fetchone()
+            activations = connection.execute("SELECT status, count(*) AS total FROM activity_activation GROUP BY status").fetchall()
+            qso_total = connection.execute("SELECT count(*) FROM activity_qso WHERE status <> 'VOID'").fetchone()
+            qso_void = connection.execute("SELECT count(*) FROM activity_qso WHERE status = 'VOID'").fetchone()
+            participants = connection.execute("SELECT count(DISTINCT subject_id) FROM activity_subject_aggregate").fetchone()
+            activators = connection.execute("SELECT count(DISTINCT subject_id) FROM activity_subject_aggregate WHERE category='ACTIVATOR'").fetchone()
+            hunters = connection.execute("SELECT count(DISTINCT subject_id) FROM activity_subject_aggregate WHERE category='HUNTER'").fetchone()
+            callsigns = connection.execute("SELECT count(*) FROM activity_subject_callsign").fetchone()
+            entities = connection.execute("SELECT count(*) FROM activity_subject_entity").fetchone()
+            awards = connection.execute("SELECT count(*) FROM activity_award_definition").fetchone()
+            progress = connection.execute("SELECT count(*) FROM activity_award_progress").fetchone()
+            imports = connection.execute("SELECT status, count(*) AS total FROM activity_import GROUP BY status").fetchall()
+
+        def value(row: Any) -> float:
+            return float(row[0] if not isinstance(row, dict) else next(iter(row.values())))
+
+        result = {f"myota_activity_jobs_{str(row['status']).lower()}_total": float(row['total']) for row in jobs}
+        result.update({f'myota_activity_activations_by_status_total{{status="{str(row["status"])}"}}': float(row["total"]) for row in activations})
+        result.update({
+            "myota_activity_job_lag_seconds": value(lag) if lag else 0,
+            "myota_activity_qso_corrections_pending": value(corrections),
+            "myota_activity_qsos_total": value(qso_total),
+            "myota_activity_void_qsos_total": value(qso_void),
+            "myota_activity_participants_total": value(participants),
+            "myota_activity_activators_total": value(activators),
+            "myota_activity_hunters_total": value(hunters),
+            "myota_activity_subject_callsigns_total": value(callsigns),
+            "myota_activity_subject_entities_total": value(entities),
+            "myota_activity_award_definitions_total": value(awards),
+            "myota_activity_award_progress_total": value(progress),
+        })
+        result.update({f'myota_activity_imports_by_status_total{{status="{str(row["status"])}"}}': float(row["total"]) for row in imports})
+        return result
+
     def close(self) -> None:
         if self.pool is not None:
             self.pool.close()
