@@ -27,6 +27,12 @@ SERVICES = {
     "/v1/geodata/": ("geodata", 8003, GeoHandler),
     "/v1/activations": ("activity", 8004, ActivityHandler),
     "/v1/awards": ("activity", 8004, ActivityHandler),
+    "/v1/qso-ingestions": ("activity", 8004, ActivityHandler),
+    "/v1/adif/": ("activity", 8004, ActivityHandler),
+    "/v1/qsos": ("activity", 8004, ActivityHandler),
+    "/v1/statistics": ("activity", 8004, ActivityHandler),
+    "/v1/public/": ("activity", 8004, ActivityHandler),
+    "/v1/notifications": ("activity", 8004, ActivityHandler),
 }
 
 
