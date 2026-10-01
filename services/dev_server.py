@@ -38,7 +38,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, Idempotency-Key, X-Request-ID, X-Correlation-ID")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
         self.end_headers()
 
     def do_GET(self) -> None:
@@ -51,6 +51,15 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self._proxy()
 
     def do_POST(self) -> None:
+        self._proxy()
+
+    def do_PUT(self) -> None:
+        self._proxy()
+
+    def do_PATCH(self) -> None:
+        self._proxy()
+
+    def do_DELETE(self) -> None:
         self._proxy()
 
     def _static(self) -> None:
@@ -100,23 +109,28 @@ class GatewayHandler(BaseHTTPRequestHandler):
                     connection.send(chunk)
                     remaining -= len(chunk)
                 response = connection.getresponse()
-                self._json(response.status, response.read())
+                self._json(response.status, response.read(), response.getheaders())
                 connection.close()
             else:
-                request = urllib.request.Request(f"{base_url}{self.path}", method=self.command, headers=headers)
+                body = self.rfile.read(int(self.headers.get("Content-Length", "0"))) if self.command in {"PUT", "PATCH", "DELETE"} else None
+                request = urllib.request.Request(f"{base_url}{self.path}", data=body, method=self.command, headers=headers)
                 with urllib.request.urlopen(request, timeout=float(os.environ.get("MYOTA_PROXY_TIMEOUT_SECONDS", "60"))) as response:
-                    self._json(response.status, response.read())
+                    self._json(response.status, response.read(), response.headers.items())
         except urllib.error.HTTPError as exc:
-            self._json(exc.code, exc.read())
+            self._json(exc.code, exc.read(), exc.headers.items())
         except Exception as exc:
             self._json(503, ('{"error":"service_unavailable","message":"%s"}' % str(exc)).encode())
 
-    def _json(self, status: int, data: bytes) -> None:
+    def _json(self, status: int, data: bytes, upstream_headers: object = ()) -> None:
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, Idempotency-Key, X-Request-ID, X-Correlation-ID")
+        if hasattr(upstream_headers, "__iter__"):
+            for name, value in upstream_headers:
+                if name.lower() in {"deprecation", "sunset", "api-version"}:
+                    self.send_header(name, value)
         self.end_headers()
         self.wfile.write(data)
 
