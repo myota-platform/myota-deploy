@@ -27,7 +27,9 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
 - Phase 3 activity and award job resources are deployed on the shared activity
   API port 8004. The worker handles QSO ingestion, ADIF, statistics, award
   evaluation/recalculation, certificate rendering, notifications, and bounded
-  retries. See the [Phase 3 job record](https://github.com/myota-platform/myota-docs/blob/main/docs/api-phase3-activity-award-jobs.md).
+  retries. Participant mutations are owner-authorized, recalculation is rule-
+  version scoped, and statistics rebuilds replace the current deterministic
+  snapshot set. See the [Phase 3 job record](https://github.com/myota-platform/myota-docs/blob/main/docs/api-phase3-activity-award-jobs.md).
 
 Unit tests may use a small in-memory adapter when they explicitly omit a
 database URL. The local Compose runtime is different: every database-backed
