@@ -24,6 +24,10 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
   consolidated imports, proposals, metadata, categories, geometry, reviews,
   bbox-filtered entity collections, and confirmation-based deletion jobs. See
   the [Phase 2 resource model](https://github.com/myota-platform/myota-docs/blob/main/docs/api-phase2-geodata-resource-model.md).
+- Phase 3 activity and award job resources are deployed on the shared activity
+  API port 8004. The worker handles QSO ingestion, ADIF, statistics, award
+  evaluation/recalculation, certificate rendering, notifications, and bounded
+  retries. See the [Phase 3 job record](https://github.com/myota-platform/myota-docs/blob/main/docs/api-phase3-activity-award-jobs.md).
 
 Unit tests may use a small in-memory adapter when they explicitly omit a
 database URL. The local Compose runtime is different: every database-backed
