@@ -15,13 +15,23 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["/bin/bash", "/app/db/migrations/run.sh"]
           env:
-            - name: PGHOST
-              value: {{ .Values.postgres.host | quote }}
-            - name: PGPORT
-              value: "5432"
+            - name: CORE_HOST
+              value: {{ .Values.postgres.coreHost | quote }}
+            - name: ACTIVITY_HOST
+              value: {{ .Values.postgres.activityHost | quote }}
+            - name: GEO_HOST
+              value: {{ .Values.postgres.geoHost | quote }}
             - name: PGUSER
               valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: username}}
             - name: PGPASSWORD
               valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: password}}
-            - name: PGDATABASE
+            - name: CORE_DATABASE
               value: {{ .Values.postgres.coreDatabase | quote }}
+            - name: ACTIVITY_DATABASE
+              value: {{ .Values.postgres.activityDatabase | quote }}
+            - name: GEO_DATABASE
+              value: {{ .Values.postgres.geoDatabase | quote }}
+            - name: LEGACY_GEO_HOST
+              value: {{ .Values.postgres.coreHost | quote }}
+            - name: LEGACY_GEO_DATABASE
+              value: {{ .Values.postgres.geoDatabase | quote }}

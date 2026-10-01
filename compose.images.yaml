@@ -1,6 +1,6 @@
 services:
-  postgis:
-    image: postgis/postgis:16-3.4
+  core-db:
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: myota
       POSTGRES_PASSWORD: myota-dev-only
@@ -9,25 +9,44 @@ services:
     volumes:
       - postgis-data:/var/lib/postgresql/data
       - ./db/migrations/core/001_core.sql:/docker-entrypoint-initdb.d/001_core.sql:ro
-      - ./db/bootstrap/00-create-geo.sh:/docker-entrypoint-initdb.d/00-create-geo.sh:ro
-      - ./db/migrations/geo/001_geodata.sql:/docker-entrypoint-initdb.d/geo.sql:ro
-      - ./db/migrations/geo/002_qgis_views.sql:/docker-entrypoint-initdb.d/geo-views.sql:ro
+  activity-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: myota
+      POSTGRES_PASSWORD: myota-dev-only
+      POSTGRES_DB: myota_activity
+    volumes: [activity-data:/var/lib/postgresql/data]
+  geo-db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: myota
+      POSTGRES_PASSWORD: myota-dev-only
+      POSTGRES_DB: myota_geo
+    volumes: [geo-data:/var/lib/postgresql/data]
   migrations:
     image: ghcr.io/myota-platform/myota-service:latest
     command: ["/migrations/run.sh"]
     environment:
-      PGHOST: postgis
-      PGPORT: 5432
+      CORE_HOST: core-db
+      ACTIVITY_HOST: activity-db
+      GEO_HOST: geo-db
       PGUSER: myota
       PGPASSWORD: myota-dev-only
-      PGDATABASE: myota_core
-    depends_on: {postgis: {condition: service_healthy}}
+      CORE_DATABASE: myota_core
+      ACTIVITY_DATABASE: myota_activity
+      GEO_DATABASE: myota_geo
+      LEGACY_GEO_HOST: core-db
+      LEGACY_GEO_DATABASE: myota_geo
+    depends_on:
+      core-db: {condition: service_started}
+      activity-db: {condition: service_started}
+      geo-db: {condition: service_started}
   identity:
     image: ghcr.io/myota-platform/myota-identity-service:latest
     env_file: [.env]
     environment:
       SERVICE: identity
-      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@core-db:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_ENV: development
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
@@ -38,7 +57,7 @@ services:
     image: ghcr.io/myota-platform/myota-service:latest
     command: ["python3", "services/identity_maintenance.py"]
     environment:
-      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@core-db:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_MAX_BODY_BYTES: "33554432"
@@ -48,7 +67,7 @@ services:
     image: ghcr.io/myota-platform/myota-programme-service:latest
     environment:
       SERVICE: programmes
-      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@core-db:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
     depends_on: {migrations: {condition: service_completed_successfully}}
@@ -57,7 +76,7 @@ services:
     image: ghcr.io/myota-platform/myota-geodata-service:latest
     environment:
       SERVICE: geodata
-      GEO_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_geo
+      GEO_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_MAX_BODY_BYTES: "1073741824"
@@ -73,7 +92,7 @@ services:
     image: ghcr.io/myota-platform/myota-activity-service:latest
     environment:
       SERVICE: activity
-      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      ACTIVITY_DATABASE_URL: postgresql://myota:myota-dev-only@activity-db:5432/myota_activity
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
@@ -88,7 +107,7 @@ services:
     image: ghcr.io/myota-platform/myota-activity-service:latest
     command: ["python3", "activity_worker.py"]
     environment:
-      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      ACTIVITY_DATABASE_URL: postgresql://myota:myota-dev-only@activity-db:5432/myota_activity
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
@@ -101,7 +120,7 @@ services:
     image: ghcr.io/myota-platform/myota-activity-service:latest
     command: ["python3", "activity_notification_consumer.py"]
     environment:
-      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      ACTIVITY_DATABASE_URL: postgresql://myota:myota-dev-only@activity-db:5432/myota_activity
       MYOTA_REQUIRE_DURABILITY: "1"
       NATS_URL: nats://nats:4222
       MYOTA_ACTIVITY_DB_POOL_MAX: "4"
@@ -134,20 +153,31 @@ services:
     image: ghcr.io/myota-platform/myota-service:latest
     command: ["python3", "services/outbox_worker.py"]
     environment:
-      OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_core
+      OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@core-db:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       NATS_URL: nats://nats:4222
       OUTBOX_WORKER: core-outbox
+    depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
+  outbox-activity:
+    image: ghcr.io/myota-platform/myota-service:latest
+    command: ["python3", "services/outbox_worker.py"]
+    environment:
+      OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@activity-db:5432/myota_activity
+      MYOTA_REQUIRE_DURABILITY: "1"
+      NATS_URL: nats://nats:4222
+      OUTBOX_WORKER: activity-outbox
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   outbox-geo:
     image: ghcr.io/myota-platform/myota-service:latest
     command: ["python3", "services/outbox_worker.py"]
     environment:
-      OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@postgis:5432/myota_geo
+      OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
       NATS_URL: nats://nats:4222
       OUTBOX_WORKER: geo-outbox
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
 volumes:
   postgis-data:
+  activity-data:
+  geo-data:
   nats-data:

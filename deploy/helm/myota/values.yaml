@@ -61,8 +61,11 @@ geodataUploadSpool:
   storageSize: 20Gi
   storageClassName: ""
 postgres:
-  host: postgis
+  coreHost: myota-core-postgres
+  activityHost: myota-activity-postgres
+  geoHost: myota-geo-postgis
   coreDatabase: myota_core
+  activityDatabase: myota_activity
   geoDatabase: myota_geo
   existingSecret: myota-postgres
 auth:

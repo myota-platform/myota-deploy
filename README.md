@@ -63,11 +63,13 @@ documented sunset; use service-owned telemetry to monitor remaining callers
 before removing them.
 
 Unit tests may use a small in-memory adapter when they explicitly omit a
-database URL. The local Compose runtime is different: every database-backed
-service has a PostgreSQL/PostGIS URL and `MYOTA_REQUIRE_DURABILITY=1`. A
-missing URL therefore stops that service during startup instead of silently
-accepting writes in process memory. PostgreSQL/PostGIS is defined in
-`db/migrations/` and the named Compose volumes preserve it between restarts.
+database URL. The local Compose runtime is different: identity/programmes use
+`myota_core` on plain PostgreSQL, activity/workers use `myota_activity` on
+plain PostgreSQL, and geodata/import workers use `myota_geo` on PostGIS. Every
+database-backed service has its service-specific URL and
+`MYOTA_REQUIRE_DURABILITY=1`. A missing URL therefore stops that service
+during startup instead of silently accepting writes in process memory. The
+named Compose volumes preserve all three databases between restarts.
 
 ## Run the vertical slice
 
@@ -83,7 +85,7 @@ awards port. Use `python3 services/dev_server.py` only as the dependency-free
 unit-test harness; it is not a durable runtime unless database URLs and
 `MYOTA_REQUIRE_DURABILITY=1` are supplied explicitly.
 
-For a containerized PostGIS environment, start Colima and run
+For the three-database local environment, start Colima and run
 `docker-compose up -d --build`. The gateway is available on
 `http://localhost:8080`; the authenticated administration web is available on
 `http://localhost:8090`; SeaweedFS exposes its S3 endpoint on
@@ -96,7 +98,9 @@ early. Activity and awards share port 8004, while
 run asynchronously and can be scaled independently. The geodata processing
 worker consumes `myota.geodata.import.process.v1` after an administrator
 confirms a selection. The activity migration is applied by
-`db/migrations/run.sh`; its canonical source is maintained in
+`db/migrations/run.sh`; core, activity and geodata migration ownership is
+separated under `db/migrations/core/`, `db/migrations/activity/` and
+`db/migrations/geo/`. The canonical activity source is maintained in
 `myota-activity-service/migrations/` and reviewed into this deployment copy.
 The Helm chart exposes the same processor as
 `geodataImportProcessing`, so production Kubernetes deployments keep the

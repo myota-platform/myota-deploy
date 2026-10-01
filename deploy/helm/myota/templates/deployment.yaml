@@ -16,10 +16,16 @@ spec:
           env:
             - name: SERVICE
               value: {{ $name | quote }}
-            - name: CORE_DATABASE_URL
-              valueFrom: {secretKeyRef: {name: {{ $.Values.postgres.existingSecret }}, key: core-database-url}}
+            {{- if eq $name "activity" }}
+            - name: ACTIVITY_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ $.Values.postgres.existingSecret }}, key: activity-database-url}}
+            {{- else if eq $name "geodata" }}
             - name: GEO_DATABASE_URL
               valueFrom: {secretKeyRef: {name: {{ $.Values.postgres.existingSecret }}, key: geo-database-url}}
+            {{- else }}
+            - name: CORE_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ $.Values.postgres.existingSecret }}, key: core-database-url}}
+            {{- end }}
             - name: MYOTA_REQUIRE_DURABILITY
               value: "1"
             - name: MYOTA_ENV
@@ -130,8 +136,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["python3", "services/activity_worker.py"]
           env:
-            - name: CORE_DATABASE_URL
-              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: core-database-url}}
+            - name: ACTIVITY_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: activity-database-url}}
             - name: MYOTA_REQUIRE_DURABILITY
               value: "1"
             - name: MYOTA_OBJECT_STORAGE_ENDPOINT
@@ -169,8 +175,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["python3", "services/activity_notification_consumer.py"]
           env:
-            - name: CORE_DATABASE_URL
-              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: core-database-url}}
+            - name: ACTIVITY_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: activity-database-url}}
             - name: MYOTA_REQUIRE_DURABILITY
               value: "1"
             - name: NATS_URL
@@ -243,7 +249,7 @@ spec:
           livenessProbe: {httpGet: {path: /, port: http}}
 ---
 {{- if .Values.outbox.enabled }}
-{{- range $db, $worker := dict "core" "core-outbox" "geo" "geo-outbox" }}
+{{- range $db, $worker := dict "core" "core-outbox" "activity" "activity-outbox" "geo" "geo-outbox" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
