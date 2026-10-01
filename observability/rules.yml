@@ -33,12 +33,12 @@ groups:
         expr: |
           (
             sum by (service_name, http_route, http_request_method) (
-              rate(myota_http_server_requests_total{job="myota-otel-collector",http_response_status_code=~"5.."}[5m])
+              rate(myota_http_server_requests_total{http_response_status_code=~"5.."}[5m])
             )
             /
             clamp_min(
               sum by (service_name, http_route, http_request_method) (
-                rate(myota_http_server_requests_total{job="myota-otel-collector"}[5m])
+                rate(myota_http_server_requests_total[5m])
               ),
               0.1
             )
@@ -53,7 +53,7 @@ groups:
           histogram_quantile(
             0.95,
             sum by (le, service_name, http_route, http_request_method) (
-              rate(myota_http_server_duration_milliseconds_bucket{job="myota-otel-collector"}[5m])
+              rate(myota_http_server_duration_milliseconds_bucket[5m])
             )
           ) > 1000
         for: 10m
@@ -66,7 +66,7 @@ groups:
           histogram_quantile(
             0.95,
             sum by (le, service_name, http_route, http_request_method) (
-              rate(myota_http_server_duration_milliseconds_bucket{job="myota-otel-collector"}[5m])
+              rate(myota_http_server_duration_milliseconds_bucket[5m])
             )
           ) > 5000
         for: 5m
