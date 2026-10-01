@@ -3,7 +3,8 @@
 This chart targets the cluster managed by Rancher at `https://rancher.spainip.es`
 and uses the cluster's Traefik ingress controller. Configure the public/API
 hostname with `ingress.host` and the separate administration UI hostname with
-`ingress.adminHost`. The Spainip example uses `myota.top` and
+`ingress.adminHost`. Defaults (also used by the Spainip example) are
+`api.myota.top` and
 `admin.myota.top`, respectively. The admin web proxies same-origin `/v1`
 requests to the in-cluster API gateway; the public hostname routes directly to
 the gateway. The participant-facing `myota-web` is not yet packaged, so the
@@ -11,7 +12,7 @@ public hostname currently exposes the API, not a participant website.
 
 ## Before enabling Fleet
 
-1. Point DNS `A` records for `myota.top` and `admin.myota.top` (and `AAAA`
+1. Point DNS `A` records for `api.myota.top` and `admin.myota.top` (and `AAAA`
    records if IPv6 is configured) to the public address of `spainip.es`. Allow
    inbound TCP 80/443 to K3s/Traefik. Confirm the cluster has the `traefik`
    IngressClass and a default persistent-volume StorageClass
@@ -95,7 +96,7 @@ review the workflow result before Fleet reconciles them.
   service. `latest` is only a bring-up default; use immutable tags for repeatable
   production rollbacks. Each API service has its own image repository and can
   override the shared `image.tag` with `services.<name>.imageTag`.
-- Confirm `/healthz` through `https://myota.top/healthz`; open the admin UI at
+- Confirm `/healthz` through `https://api.myota.top/healthz`; open the admin UI at
   `https://admin.myota.top` and test login, entity reads, geodata import, and
   one activity/QSO workflow before announcing the service.
 - Keep the database and S3 credentials out of Git. Rotate the signing key only

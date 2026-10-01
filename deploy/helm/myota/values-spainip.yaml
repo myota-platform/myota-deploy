@@ -6,7 +6,7 @@ image:
 ingress:
   enabled: true
   className: traefik
-  host: myota.top
+  host: api.myota.top
   adminHost: admin.myota.top
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
