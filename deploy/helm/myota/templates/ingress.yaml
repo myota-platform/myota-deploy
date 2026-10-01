@@ -1,4 +1,4 @@
-{{- if and .Values.ingress.enabled .Values.adminWeb.enabled }}
+{{- if and .Values.ingress.enabled .Values.adminWeb.enabled (not .Values.ingress.adminHost) }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -18,7 +18,9 @@ spec:
   tls:
     - hosts:
         - {{ .Values.ingress.host | quote }}
+      {{- if .Values.ingress.tls.secretName }}
       secretName: {{ .Values.ingress.tls.secretName | quote }}
+      {{- end }}
   {{- end }}
   rules:
     - host: {{ .Values.ingress.host | quote }}
@@ -31,4 +33,78 @@ spec:
                 name: myota-admin-web
                 port:
                   number: {{ .Values.adminWeb.servicePort }}
+{{- end }}
+{{- if and .Values.ingress.enabled .Values.ingress.adminHost }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myota-public
+  labels:
+    app.kubernetes.io/name: myota
+    app.kubernetes.io/component: ingress
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      {{- if .Values.ingress.tls.secretName }}
+      secretName: {{ .Values.ingress.tls.secretName | quote }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: myota-gateway
+                port:
+                  number: {{ .Values.gateway.port }}
+{{- if .Values.adminWeb.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myota-admin
+  labels:
+    app.kubernetes.io/name: myota
+    app.kubernetes.io/component: ingress
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- end }}
+  {{- if .Values.ingress.adminTls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.adminHost | quote }}
+      {{- if .Values.ingress.adminTls.secretName }}
+      secretName: {{ .Values.ingress.adminTls.secretName | quote }}
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.adminHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: myota-admin-web
+                port:
+                  number: {{ .Values.adminWeb.servicePort }}
+{{- end }}
 {{- end }}

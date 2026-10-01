@@ -2,7 +2,7 @@
 2. For first-install bootstrap, optionally add `bootstrap-email` and `bootstrap-password` to `{{ .Values.auth.existingSecret }}`; remove or rotate them after administrator access is confirmed.
 3. The migration hook applies core, activity and geodata migrations. With `postgres.enabled=true`, the chart starts the three database StatefulSets; with it disabled, provision the three external targets before installation. Only the geodata target needs PostGIS.
 4. NATS JetStream persistence is enabled by default. Ensure the cluster has a persistent-volume StorageClass and back up its PVC as well as all database and object-storage data.
-5. The admin web proxies same-origin `/v1` requests to the API gateway. Set `ingress.enabled=true`, configure `ingress.host`, and provision the TLS secret named by `ingress.tls.secretName` before exposing the login page.
+5. The admin web proxies same-origin `/v1` requests to the API gateway. With `ingress.adminHost` configured, `ingress.host` routes to the API gateway and `ingress.adminHost` routes to the admin UI. TLS is enabled for each hostname; a TLS secret is optional when Traefik provisions certificates automatically. Without `adminHost`, the legacy single-host admin ingress is used.
 6. For the Rancher Fleet/K3s Traefik procedure and Spainip-specific values, see `deploy/helm/myota/DEPLOYMENT.md`.
 7. The geodata pipeline supports uploads up to the configured `geodataPipeline.maxUploadBytes`; the scheduled importer is disabled until a reviewed source-specific image and allowlist are supplied.
 {{- if .Values.ingress.enabled }}

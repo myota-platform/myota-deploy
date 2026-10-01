@@ -19,11 +19,18 @@ adminWeb:
 ingress:
   enabled: false
   className: traefik
+  # Main/public hostname. When adminHost is set, this routes to the API gateway.
   host: myota.top
+  # Optional separate hostname for the administration UI. When empty, the
+  # legacy behavior routes host directly to the admin web.
+  adminHost: ""
   annotations: {}
   tls:
     enabled: false
     secretName: myota-top-tls
+  adminTls:
+    enabled: false
+    secretName: ""
 services:
   identity:
     imageRepository: ghcr.io/myota-platform/myota-identity-service

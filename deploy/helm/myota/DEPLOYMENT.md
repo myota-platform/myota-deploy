@@ -1,17 +1,21 @@
 # Deploy MyOTA with Rancher Fleet on K3s
 
 This chart targets the cluster managed by Rancher at `https://rancher.spainip.es`
-and uses the cluster's Traefik ingress controller. It exposes the administration
-web at `https://myota.top`; the hostname is configurable with
-`ingress.host`. The web container proxies same-origin `/v1` requests to the API
-gateway, so the browser and API share one TLS origin.
+and uses the cluster's Traefik ingress controller. Configure the public/API
+hostname with `ingress.host` and the separate administration UI hostname with
+`ingress.adminHost`. The Spainip example uses `myota.top` and
+`admin.myota.top`, respectively. The admin web proxies same-origin `/v1`
+requests to the in-cluster API gateway; the public hostname routes directly to
+the gateway. The participant-facing `myota-web` is not yet packaged, so the
+public hostname currently exposes the API, not a participant website.
 
 ## Before enabling Fleet
 
-1. Point the DNS `A` record for `myota.top` (and an `AAAA` record if IPv6 is
-   configured) to the public address of `spainip.es`. Allow inbound TCP 80/443
-   to K3s/Traefik. Confirm the cluster has the `traefik` IngressClass and a
-   default persistent-volume StorageClass (`kubectl get ingressclass,storageclass`).
+1. Point DNS `A` records for `myota.top` and `admin.myota.top` (and `AAAA`
+   records if IPv6 is configured) to the public address of `spainip.es`. Allow
+   inbound TCP 80/443 to K3s/Traefik. Confirm the cluster has the `traefik`
+   IngressClass and a default persistent-volume StorageClass
+   (`kubectl get ingressclass,storageclass`). Both hostnames are configurable.
 2. The Spainip values enable three separate PostgreSQL StatefulSets with
    persistent volume claims: plain PostgreSQL for `myota_core`, plain
    PostgreSQL for `myota_activity`, and PostgreSQL/PostGIS for `myota_geo`.
@@ -23,10 +27,13 @@ gateway, so the browser and API share one TLS origin.
    data separately before directing users to the new deployment.
 3. Create namespace `myota` and the secrets below in Rancher before starting the
    Fleet bundle. Never put their values in Git or Helm values files.
-4. Obtain a TLS certificate for `myota.top` and create the `myota-top-tls`
-   Kubernetes TLS secret in namespace `myota` (or change
-   `ingress.tls.secretName`). The example routes only through Traefik's
-   `websecure` entrypoint; do not expose the login page over plain HTTP.
+4. The Spainip values rely on the cluster's existing Traefik installation to
+   provision certificates automatically for both Ingress hosts. The chart
+   routes both only through the `websecure` entrypoint; verify the cluster's
+   configured certificate resolver and issuer policy if certificates do not
+   appear. For clusters that require pre-created certificates, set
+   `ingress.tls.secretName` and `ingress.adminTls.secretName` to Kubernetes TLS
+   secrets in namespace `myota`.
 5. If you use the chart-managed PostgreSQL StatefulSets, the database URLs in
    `myota-postgres` should use role `myota_app` and service names
    `myota-core-postgres`, `myota-activity-postgres`, and `myota-geo-postgis`,
@@ -88,9 +95,9 @@ review the workflow result before Fleet reconciles them.
   service. `latest` is only a bring-up default; use immutable tags for repeatable
   production rollbacks. Each API service has its own image repository and can
   override the shared `image.tag` with `services.<name>.imageTag`.
-- Confirm `/healthz` through `https://myota.top/healthz`, and test login, entity
-  reads, geodata import, and one activity/QSO workflow before announcing the
-  service.
+- Confirm `/healthz` through `https://myota.top/healthz`; open the admin UI at
+  `https://admin.myota.top` and test login, entity reads, geodata import, and
+  one activity/QSO workflow before announcing the service.
 - Keep the database and S3 credentials out of Git. Rotate the signing key only
   with a coordinated token/session plan.
 - The current chart deploys the administration web; the `myota-web` participant
