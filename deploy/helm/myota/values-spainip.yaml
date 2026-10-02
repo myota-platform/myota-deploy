@@ -5,18 +5,21 @@ image:
 
 ingress:
   enabled: true
+  provider: traefik
   className: traefik
   host: api.myota.top
   adminHost: admin.myota.top
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  entryPoints:
+    - websecure
+  annotations: {}
   tls:
     enabled: true
-    # Traefik on this cluster provisions certificates automatically.
     secretName: ""
+    certResolver: acmeresolver
   adminTls:
     enabled: true
     secretName: ""
+    certResolver: acmeresolver
 
 postgres:
   enabled: true

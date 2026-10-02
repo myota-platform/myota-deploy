@@ -14,9 +14,10 @@ public hostname currently exposes the API, not a participant website.
 
 1. Point DNS `A` records for `api.myota.top` and `admin.myota.top` (and `AAAA`
    records if IPv6 is configured) to the public address of `spainip.es`. Allow
-   inbound TCP 80/443 to K3s/Traefik. Confirm the cluster has the `traefik`
-   IngressClass and a default persistent-volume StorageClass
-   (`kubectl get ingressclass,storageclass`). Both hostnames are configurable.
+   inbound TCP 80/443 to K3s/Traefik. Confirm Traefik's `IngressRoute` CRD is
+   installed and that `websecure` and the `acmeresolver` certificate resolver
+   match the cluster configuration. The Spainip values use these settings;
+   both hostnames are configurable.
 2. The Spainip values enable three separate PostgreSQL StatefulSets with
    persistent volume claims: plain PostgreSQL for `myota_core`, plain
    PostgreSQL for `myota_activity`, and PostgreSQL/PostGIS for `myota_geo`.
@@ -28,13 +29,14 @@ public hostname currently exposes the API, not a participant website.
    data separately before directing users to the new deployment.
 3. Create namespace `myota` and the secrets below in Rancher before starting the
    Fleet bundle. Never put their values in Git or Helm values files.
-4. The Spainip values rely on the cluster's existing Traefik installation to
-   provision certificates automatically for both Ingress hosts. The chart
-   routes both only through the `websecure` entrypoint; verify the cluster's
-   configured certificate resolver and issuer policy if certificates do not
-   appear. For clusters that require pre-created certificates, set
-   `ingress.tls.secretName` and `ingress.adminTls.secretName` to Kubernetes TLS
-   secrets in namespace `myota`.
+4. The Spainip values render Traefik `IngressRoute` resources, matching the
+   cluster's existing workloads. Both routes use `websecure` and
+   `tls.certResolver: acmeresolver`, which lets the installed Traefik instance
+   provision certificates. For clusters using standard Kubernetes Ingress,
+   set `ingress.provider: kubernetes` and configure that controller's TLS
+   mechanism. For Traefik clusters using pre-created certificates, set
+   `ingress.tls.secretName` and `ingress.adminTls.secretName` to TLS secrets in
+   namespace `myota` and leave their cert resolver empty.
 5. If you use the chart-managed PostgreSQL StatefulSets, the database URLs in
    `myota-postgres` should use role `myota_app` and service names
    `myota-core-postgres`, `myota-activity-postgres`, and `myota-geo-postgis`,

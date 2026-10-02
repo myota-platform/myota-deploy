@@ -18,7 +18,12 @@ adminWeb:
   gatewayUpstream: myota-gateway:8080
 ingress:
   enabled: false
+  # Use "traefik" for Traefik's IngressRoute CRD, or "kubernetes" for a
+  # standard networking.k8s.io/v1 Ingress resource.
+  provider: kubernetes
   className: traefik
+  entryPoints:
+    - websecure
   # Public API gateway hostname; independently configurable per environment.
   host: api.myota.top
   # Administration UI hostname; independently configurable per environment.
@@ -27,9 +32,11 @@ ingress:
   tls:
     enabled: false
     secretName: myota-api-tls
+    certResolver: ""
   adminTls:
     enabled: false
     secretName: ""
+    certResolver: ""
 services:
   identity:
     imageRepository: ghcr.io/myota-platform/myota-identity-service
