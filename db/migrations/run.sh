@@ -21,6 +21,20 @@ set -euo pipefail
 : "${LEGACY_GEO_DATABASE:=myota_geo}"
 : "${MIGRATION_DATA_COPY_ENABLED:=1}"
 
+# This runner is used from two layouts: directly from the deployment image
+# (/app/db/migrations/run.sh), and from Compose with the script mounted at
+# /migrations/run.sh and the SQL mounted below /migrations/migrations. Resolve
+# the SQL directory from the runner instead of assuming one absolute path.
+RUNNER_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -d "$RUNNER_DIR/core" && -d "$RUNNER_DIR/geo" ]]; then
+  MIGRATION_FILES_DIR="$RUNNER_DIR"
+elif [[ -d "$RUNNER_DIR/migrations/core" && -d "$RUNNER_DIR/migrations/geo" ]]; then
+  MIGRATION_FILES_DIR="$RUNNER_DIR/migrations"
+else
+  echo "Migration SQL directory not found beside runner: $RUNNER_DIR" >&2
+  exit 1
+fi
+
 export PGUSER PGPASSWORD
 
 psql_target() {
@@ -73,12 +87,12 @@ for target in \
 done
 
 psql_target "$CORE_HOST" "$CORE_PORT" "$CORE_DATABASE" \
-  -f /migrations/migrations/core/001_core.sql
+  -f "$MIGRATION_FILES_DIR/core/001_core.sql"
 
 psql_target "$ACTIVITY_HOST" "$ACTIVITY_PORT" "$ACTIVITY_DATABASE" \
-  -f /migrations/migrations/activity/001_activity_relational.sql
+  -f "$MIGRATION_FILES_DIR/activity/001_activity_relational.sql"
 psql_target "$ACTIVITY_HOST" "$ACTIVITY_PORT" "$ACTIVITY_DATABASE" \
-  -f /migrations/migrations/activity/002_activity_entity_deletion.sql
+  -f "$MIGRATION_FILES_DIR/activity/002_activity_entity_deletion.sql"
 
 for migration in \
   001_geodata.sql \
@@ -94,7 +108,7 @@ for migration in \
   011_import_recovery.sql \
   012_import_finalization.sql; do
   psql_target "$GEO_HOST" "$GEO_PORT" "$GEO_DATABASE" \
-    -f "/migrations/migrations/geo/$migration"
+    -f "$MIGRATION_FILES_DIR/geo/$migration"
 done
 
 # Preserve local development data during the first split. Activity is copied
