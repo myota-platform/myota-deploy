@@ -116,6 +116,24 @@ review the workflow result before Fleet reconciles them.
   one activity/QSO workflow before announcing the service.
 - Keep the database and S3 credentials out of Git. Rotate the signing key only
   with a coordinated token/session plan.
+- API gateway liveness and readiness probes use `/healthz`; the root path is
+  not a health endpoint. When diagnosing an unready gateway, check the
+  Deployment probe configuration and pod events before changing ingress.
+- The geodata import processor uses a single-replacement rolling strategy
+  (`maxSurge: 0`, `maxUnavailable: 1`). This prevents old and new worker pods
+  from overlapping while both could bind the same durable JetStream consumer.
+  During an upgrade, a short worker interruption is expected; the durable
+  queue and recovery logic resume pending work when the replacement is ready.
+- Fleet's GitRepo polling interval controls when a pushed commit is fetched.
+  A bundle re-sync only reapplies the revision Fleet has already fetched; it
+  does not necessarily fetch a newer Git commit immediately. Check the
+  GitRepo's observed revision and polling interval, then inspect Bundle and
+  Helm release status before retrying. The chart migration Job is named for
+  its Helm release revision, so each upgrade runs the migration gate for that
+  revision before database-backed pods start.
+- A readiness or migration failure is not a reason to delete database PVCs.
+  The migration gate preserves existing data and remains inspectable; diagnose
+  the failed Job and pod events, correct the cause, and let Fleet reconcile.
 - The current chart deploys the administration web; the `myota-web` participant
   client is not yet packaged as a container or included in this chart.
 - The optional observability stack is disabled in the Spainip values until a
