@@ -123,6 +123,9 @@ postgres:
   activityDatabase: myota_activity
   geoDatabase: myota_geo
   existingSecret: myota-postgres
+migrations:
+  waitImage: postgres:16-alpine
+  waitTimeoutSeconds: 1800
 auth:
   environment: production
   existingSecret: myota-auth

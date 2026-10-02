@@ -62,9 +62,20 @@ SeaweedFS deployment use persistent volume claims. The databases and SeaweedFS
 are each single-node deployments: they are suitable for an initial single-node
 K3s rollout but are not highly available. Back up their PVCs off-host, and
 review PVC sizes and StorageClass for your actual datasets before the first
-upload. The first-install migration hook runs after these database pods have
-started; on upgrades it runs before the new application rollout. Wait for Fleet
-to report the bundle ready before sending public traffic.
+upload.
+
+The migration runner is a normal release Job, not a `post-install` hook. Helm
+waits for Deployments before running post-install hooks, while these services
+need their tables before they can become ready; using that hook ordering can
+leave clean databases empty and trigger an atomic rollback. The runner waits
+for all three database endpoints, marks the current release revision as not
+ready, applies migrations, and marks it ready only after all schemas (and the
+optional one-time data copy) succeed. Database-backed pods wait for that exact
+revision before starting. If migration fails, the gate stays closed and the
+Job remains available for inspection/retry; Fleet no longer uninstalls the
+release on failure. This does not delete or reinitialize PVC data.
+
+Wait for Fleet to report the bundle ready before sending public traffic.
 
 The role-creation script runs only when a PostgreSQL volume is initialized for
 the first time. If you restore a database volume or attach a pre-existing
@@ -83,10 +94,12 @@ Then in Rancher open **Continuous Delivery → Git Repos → Create** and config
 - Target: the K3s cluster managed by this Rancher installation
 
 Fleet reads `fleet.yaml` at that path, installs release `myota` into namespace
-`myota`, and waits for the migration hook. Follow the GitRepo/Bundle status in
-Rancher; do not treat a created Ingress as proof that the application is ready.
-Check the `myota-migrations-*` Job, then confirm all service Deployments are
-Ready and the TLS URL responds.
+`myota`, and waits for the migration Job and gated Deployments. Follow the
+GitRepo/Bundle status in Rancher; do not treat a created IngressRoute as proof
+that the application is ready. Check the `myota-migrations-*` Job and its pod
+logs first, then confirm all service Deployments are Ready and the TLS URL
+responds. A failed migration is intentionally retained; correct its reported
+cause and reconcile the bundle again rather than deleting database PVCs.
 
 The chart renders in the repository's GitHub Actions workflow. Do not render or
 apply it from a developer workstation; submit chart changes through Git and

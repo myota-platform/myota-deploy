@@ -6,4 +6,6 @@ helm:
     - values-spainip.yaml
   waitForJobs: true
   timeoutSeconds: 1800
-  atomic: true
+  # Preserve database StatefulSets and failed migration Jobs for inspection;
+  # an atomic uninstall can otherwise remove the workloads needed to recover.
+  atomic: false

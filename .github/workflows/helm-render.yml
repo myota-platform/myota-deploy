@@ -48,3 +48,14 @@ jobs:
           --namespace myota
           --kube-version 1.30.0
           --values deploy/helm/myota/values-spainip.yaml
+          > /tmp/myota-spainip-rendered.yaml
+
+      - name: Verify migration gate and Traefik routes
+        run: |
+          grep -q 'name: myota-migrations-' /tmp/myota-spainip-rendered.yaml
+          grep -q 'name: wait-for-schema' /tmp/myota-spainip-rendered.yaml
+          grep -q 'kind: IngressRoute' /tmp/myota-spainip-rendered.yaml
+          if grep -q 'helm.sh/hook:' /tmp/myota-spainip-rendered.yaml; then
+            echo 'Migrations must run as a normal Job, not a Helm hook.' >&2
+            exit 1
+          fi

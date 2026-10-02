@@ -9,6 +9,14 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $name }}}}
     spec:
+      initContainers:
+        {{- if eq $name "activity" }}
+        {{ include "myota.waitForSchema" (dict "root" $ "databaseUrlKey" "activity-database-url") | nindent 8 }}
+        {{- else if eq $name "geodata" }}
+        {{ include "myota.waitForSchema" (dict "root" $ "databaseUrlKey" "geo-database-url") | nindent 8 }}
+        {{- else }}
+        {{ include "myota.waitForSchema" (dict "root" $ "databaseUrlKey" "core-database-url") | nindent 8 }}
+        {{- end }}
       containers:
         - name: {{ $name }}
           image: "{{ default $.Values.image.repository $cfg.imageRepository }}:{{ default $.Values.image.tag $cfg.imageTag }}"
@@ -141,6 +149,8 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-worker}}
     spec:
+      initContainers:
+        {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "activity-database-url") | nindent 8 }}
       containers:
         - name: activity-worker
           image: "{{ .Values.services.activity.imageRepository }}:{{ default .Values.image.tag .Values.services.activity.imageTag }}"
@@ -180,6 +190,8 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-notifications}}
     spec:
+      initContainers:
+        {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "activity-database-url") | nindent 8 }}
       containers:
         - name: activity-notifications
           image: "{{ .Values.services.activity.imageRepository }}:{{ default .Values.image.tag .Values.services.activity.imageTag }}"
@@ -215,6 +227,8 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}}
     spec:
+      initContainers:
+        {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "geo-database-url") | nindent 8 }}
       containers:
         - name: geodata-import-processing
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -280,6 +294,8 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $worker }}}}
     spec:
+      initContainers:
+        {{ include "myota.waitForSchema" (dict "root" $ "databaseUrlKey" (printf "%s-database-url" $db)) | nindent 8 }}
       containers:
         - name: outbox
           image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"

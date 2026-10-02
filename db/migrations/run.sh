@@ -15,6 +15,7 @@ set -euo pipefail
 : "${CORE_DATABASE:=myota_core}"
 : "${ACTIVITY_DATABASE:=myota_activity}"
 : "${GEO_DATABASE:=myota_geo}"
+: "${MYOTA_SCHEMA_REVISION:=0}"
 : "${LEGACY_GEO_HOST:=$CORE_HOST}"
 : "${LEGACY_GEO_PORT:=$CORE_PORT}"
 : "${LEGACY_GEO_DATABASE:=myota_geo}"
@@ -46,6 +47,30 @@ wait_for_db() {
 wait_for_db "$CORE_HOST" "$CORE_PORT" "$CORE_DATABASE"
 wait_for_db "$ACTIVITY_HOST" "$ACTIVITY_PORT" "$ACTIVITY_DATABASE"
 wait_for_db "$GEO_HOST" "$GEO_PORT" "$GEO_DATABASE"
+
+# App pods gate their startup on this marker. Clear all markers before running
+# any migration so a failed/partial run cannot expose a mixed schema as ready.
+for target in \
+  "$CORE_HOST $CORE_PORT $CORE_DATABASE" \
+  "$ACTIVITY_HOST $ACTIVITY_PORT $ACTIVITY_DATABASE" \
+  "$GEO_HOST $GEO_PORT $GEO_DATABASE"; do
+  read -r host port database <<< "$target"
+  psql_target "$host" "$port" "$database" -c "
+    CREATE TABLE IF NOT EXISTS public.myota_deployment_schema_state (
+      id text PRIMARY KEY,
+      ready boolean NOT NULL DEFAULT false,
+      release_revision integer NOT NULL DEFAULT 0,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    ALTER TABLE public.myota_deployment_schema_state
+      ADD COLUMN IF NOT EXISTS release_revision integer NOT NULL DEFAULT 0;
+    INSERT INTO public.myota_deployment_schema_state (id, ready, release_revision)
+    VALUES ('deployment', false, $MYOTA_SCHEMA_REVISION)
+    ON CONFLICT (id) DO UPDATE
+      SET ready = false, release_revision = EXCLUDED.release_revision, updated_at = now();
+    GRANT SELECT ON public.myota_deployment_schema_state TO myota_app;
+  "
+done
 
 psql_target "$CORE_HOST" "$CORE_PORT" "$CORE_DATABASE" \
   -f /migrations/migrations/core/001_core.sql
@@ -141,5 +166,19 @@ if [ "$MIGRATION_DATA_COPY_ENABLED" = "1" ]; then
     echo "No legacy geodata database found; skipping its already-completed copy"
   fi
 fi
+
+# Mark every database ready only after all schemas and any one-time data copy
+# have completed successfully. On any earlier error the marker remains false.
+for target in \
+  "$CORE_HOST $CORE_PORT $CORE_DATABASE" \
+  "$ACTIVITY_HOST $ACTIVITY_PORT $ACTIVITY_DATABASE" \
+  "$GEO_HOST $GEO_PORT $GEO_DATABASE"; do
+  read -r host port database <<< "$target"
+  psql_target "$host" "$port" "$database" -c "
+    UPDATE public.myota_deployment_schema_state
+       SET ready = true, updated_at = now()
+     WHERE id = 'deployment' AND release_revision = $MYOTA_SCHEMA_REVISION;
+  "
+done
 
 echo "MyOTA database migrations completed: core=$CORE_DATABASE activity=$ACTIVITY_DATABASE geo=$GEO_DATABASE"

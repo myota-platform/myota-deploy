@@ -2,11 +2,10 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: myota-migrations-{{ .Release.Revision }}
-  annotations:
-    "helm.sh/hook": post-install,pre-upgrade
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 4
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 86400
   template:
     spec:
       restartPolicy: Never
@@ -37,6 +36,8 @@ spec:
               value: {{ .Values.postgres.activityDatabase | quote }}
             - name: GEO_DATABASE
               value: {{ .Values.postgres.geoDatabase | quote }}
+            - name: MYOTA_SCHEMA_REVISION
+              value: {{ .Release.Revision | quote }}
             - name: LEGACY_GEO_HOST
               value: {{ .Values.postgres.coreHost | quote }}
             - name: LEGACY_GEO_PORT
