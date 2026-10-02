@@ -222,10 +222,13 @@ kind: Deployment
 metadata:
   name: myota-geodata-import-processing
 spec:
-  # This worker binds a durable JetStream consumer. A rolling update briefly
-  # runs old and new pods together, which makes NATS reject the second bind.
+  # This worker binds a durable JetStream consumer. Zero surge ensures the old
+  # pod exits before its replacement tries to bind the same consumer.
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   replicas: {{ .Values.geodataImportProcessing.replicas }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}}
   template:
