@@ -12,6 +12,7 @@ spec:
       containers:
         - name: migrations
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" | quote }}
           command: ["/bin/bash", "/app/db/migrations/run.sh"]
           env:
             - name: CORE_HOST

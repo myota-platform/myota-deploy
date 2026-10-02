@@ -54,6 +54,7 @@ jobs:
       - name: Verify migration gate and Traefik routes
         run: |
           grep -q 'name: myota-migrations-' /tmp/myota-spainip-rendered.yaml
+          grep -q 'imagePullPolicy: "Always"' /tmp/myota-spainip-rendered.yaml
           grep -q 'name: wait-for-schema' /tmp/myota-spainip-rendered.yaml
           grep -q 'kind: IngressRoute' /tmp/myota-spainip-rendered.yaml
           if grep -q 'helm.sh/hook:' /tmp/myota-spainip-rendered.yaml; then
