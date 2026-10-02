@@ -58,6 +58,8 @@ jobs:
           grep -q 'value: "1073741824"' /tmp/myota-spainip-rendered.yaml
           grep -q 'name: wait-for-schema' /tmp/myota-spainip-rendered.yaml
           grep -q 'kind: IngressRoute' /tmp/myota-spainip-rendered.yaml
+          grep -q 'type: Recreate' /tmp/myota-spainip-rendered.yaml
+          grep -q 'path: /healthz, port: http' /tmp/myota-spainip-rendered.yaml
           if grep -q 'helm.sh/hook:' /tmp/myota-spainip-rendered.yaml; then
             echo 'Migrations must run as a normal Job, not a Helm hook.' >&2
             exit 1

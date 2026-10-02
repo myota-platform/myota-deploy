@@ -222,6 +222,10 @@ kind: Deployment
 metadata:
   name: myota-geodata-import-processing
 spec:
+  # This worker binds a durable JetStream consumer. A rolling update briefly
+  # runs old and new pods together, which makes NATS reject the second bind.
+  strategy:
+    type: Recreate
   replicas: {{ .Values.geodataImportProcessing.replicas }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}}
   template:
@@ -279,8 +283,8 @@ spec:
               value: http://myota-otel-collector:4317
             {{- end }}
           ports: [{name: http, containerPort: 8080}]
-          readinessProbe: {httpGet: {path: /, port: http}}
-          livenessProbe: {httpGet: {path: /, port: http}}
+          readinessProbe: {httpGet: {path: /healthz, port: http}}
+          livenessProbe: {httpGet: {path: /healthz, port: http}}
 ---
 {{- if .Values.outbox.enabled }}
 {{- range $db, $worker := dict "core" "core-outbox" "activity" "activity-outbox" "geo" "geo-outbox" }}
