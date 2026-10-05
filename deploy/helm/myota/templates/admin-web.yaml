@@ -16,6 +16,8 @@ spec:
           env:
             - name: MYOTA_GATEWAY_UPSTREAM
               value: {{ .Values.adminWeb.gatewayUpstream | quote }}
+            - name: MYOTA_GRAFANA_UPSTREAM
+              value: {{ printf "%s:%v" (include "myota.fullname" (dict "name" "grafana")) .Values.observability.grafana.servicePort | quote }}
           ports: [{name: http, containerPort: {{ .Values.adminWeb.port }}}]
           readinessProbe: {httpGet: {path: /healthz, port: http}}
           livenessProbe: {httpGet: {path: /healthz, port: http}}

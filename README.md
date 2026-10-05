@@ -44,21 +44,24 @@ and availability graphs for every observed service; each graph is split by
 normalized API route and HTTP method. It does not contain synthetic business
 values.
 
-Enable the optional local stack with:
+Enable the local observability profile with:
 
 ```bash
-docker compose --profile observability up -d prometheus alertmanager grafana
+docker-compose --profile observability up -d --build
 ```
 
-Grafana is available at http://localhost:3000, Prometheus at
-http://localhost:9090, Alertmanager at http://localhost:9093, the collector
-exporter at http://localhost:8889, and Tempo at http://localhost:3200. Prometheus
-rules cover collector/service availability, per-route 5xx rate, and per-route
-p95 latency. Grafana-managed rules use the same Prometheus signals and forward
-to the local Alertmanager receiver; the local profile deliberately does not
-invent an email or paging destination. The same collector, dashboards, alert
-rules and scrape configuration are available in the Helm chart with
-`observability.enabled=true`. Deprecated routes remain aliases until the
+After signing in to the administration UI, open **Platform health →
+Observability** or visit http://localhost:8090/observability/. Grafana,
+Prometheus, Alertmanager, Tempo, and collector endpoints are not published on
+host ports; Grafana is reverse-proxied through the UI and validates the MyOTA
+access token for every request. Prometheus rules cover collector/service
+availability, per-route 5xx rate, and per-route p95 latency. Grafana-managed
+rules use the same Prometheus signals and forward to the local Alertmanager
+receiver; the local profile deliberately does not invent an email or paging
+destination. Alertmanager groups and exposes firing alerts, but external email
+or paging delivery must be configured separately. The same collector,
+dashboards, alert rules and scrape
+configuration are deployed by the Helm chart. Deprecated routes remain aliases until the
 documented sunset; use service-owned telemetry to monitor remaining callers
 before removing them.
 

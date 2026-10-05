@@ -64,6 +64,23 @@ K3s rollout but are not highly available. Back up their PVCs off-host, and
 review PVC sizes and StorageClass for your actual datasets before the first
 upload.
 
+Prometheus, Alertmanager, Grafana, and Tempo are enabled by default in the
+chart and use separate persistent claims (10 GiB, 1 GiB, 1 GiB, and 10 GiB by
+default, respectively). Set `observability.storageClassName` to use a specific
+StorageClass, or leave it empty to use the cluster default. Their Services are
+cluster-internal and none has a public IngressRoute. Grafana is available at
+`https://admin.myota.top/observability/` by default (the host follows
+`ingress.adminHost`) through the Admin UI web server. That
+server validates the MyOTA access token against the identity API on every
+request, then Grafana assigns a read-only Viewer session. Anonymous access,
+Grafana's login form, and basic authentication are disabled. Users must sign in
+to the Admin UI first; expired tokens are refreshed before opening Grafana.
+Prometheus, Alertmanager, and Tempo stay private, and Grafana accesses them
+through internal data sources. Alertmanager receives configured alerts and is
+available through Grafana's Alertmanager data source, but no email or paging
+destination is enabled by default. Configure an approved Alertmanager receiver
+before expecting external notifications.
+
 The migration runner is a normal release Job, not a `post-install` hook. Helm
 waits for Deployments before running post-install hooks, while these services
 need their tables before they can become ready; using that hook ordering can
@@ -136,7 +153,6 @@ review the workflow result before Fleet reconciles them.
   the failed Job and pod events, correct the cause, and let Fleet reconcile.
 - The current chart deploys the administration web; the `myota-web` participant
   client is not yet packaged as a container or included in this chart.
-- The optional observability stack is disabled in the Spainip values until a
-  private Grafana access path and persistent storage are configured. The app
-  services still expose health and metrics endpoints for your existing
-  monitoring.
+- Observability dashboards are at `/observability/` on the authenticated Admin
+  UI host. The stack is enabled by the Spainip values; no separate public
+  Grafana, Prometheus, Alertmanager, or Tempo hostname is created.

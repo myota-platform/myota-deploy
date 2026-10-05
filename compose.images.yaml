@@ -138,6 +138,7 @@ services:
     image: ghcr.io/myota-platform/myota-admin-web:latest
     environment:
       MYOTA_GATEWAY_UPSTREAM: gateway:8080
+      MYOTA_GRAFANA_UPSTREAM: grafana:3000
     depends_on: [gateway]
     ports: ["8090:8080"]
     healthcheck:
