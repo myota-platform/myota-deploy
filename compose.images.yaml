@@ -112,7 +112,8 @@ services:
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
-      MYOTA_OBJECT_STORAGE_BUCKET: myota-awards
+      MYOTA_AWARD_ASSET_BUCKET: myota-award-assets
+      MYOTA_AWARD_SIGNATURE_BUCKET: myota-award-signatures
       MYOTA_CERTIFICATE_BUCKET: myota-certificates
       MYOTA_ADIF_BUCKET: myota-adif
     depends_on: {migrations: {condition: service_completed_successfully}}

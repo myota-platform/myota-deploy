@@ -74,6 +74,25 @@ database-backed service has its service-specific URL and
 during startup instead of silently accepting writes in process memory. The
 named Compose volumes preserve all three databases between restarts.
 
+## Object-storage buckets
+
+All services share the configured S3-compatible endpoint and credentials, but
+use distinct buckets to isolate contents and lifecycle policies:
+
+| Purpose | Default bucket | Configuration |
+|---|---|---|
+| Geodata imports/source snapshots | `myota-geodata-imports` | `MYOTA_GEODATA_IMPORT_BUCKET` / `objectStorage.geodataImportBucket` |
+| ADIF source logs | `myota-adif` | `MYOTA_ADIF_BUCKET` / `objectStorage.adifBucket` |
+| Editable award backgrounds | `myota-award-assets` | `MYOTA_AWARD_ASSET_BUCKET` / `objectStorage.awardAssetBucket` |
+| Award-manager signatures | `myota-award-signatures` | `MYOTA_AWARD_SIGNATURE_BUCKET` / `objectStorage.awardSignatureBucket` |
+| Issued award certificates | `myota-certificates` | `MYOTA_CERTIFICATE_BUCKET` / `objectStorage.certificateBucket` |
+
+Only the geodata-import bucket is subject to automatic 30-day import expunge.
+Existing object references keep their recorded bucket; installations upgrading
+from the former shared `myota-awards` bucket should migrate asset objects and
+metadata before removing it. See the
+[object-storage operations guide](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#object-storage-bucket-boundaries).
+
 ## Run the vertical slice
 
 ```bash

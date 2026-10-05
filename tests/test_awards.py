@@ -21,6 +21,8 @@ class AwardServiceTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         os.environ.pop("MYOTA_OBJECT_STORAGE_LOCAL_DIR", None)
+        os.environ.pop("MYOTA_AWARD_ASSET_BUCKET", None)
+        os.environ.pop("MYOTA_AWARD_SIGNATURE_BUCKET", None)
 
     def _template(self) -> dict:
         kinds = ("AWARD_NAME", "CALLSIGN", "PERSON_NAME", "DATE_OBTAINED", "MANAGER_NAME", "MANAGER_SIGNATURE")
@@ -40,6 +42,8 @@ class AwardServiceTests(unittest.TestCase):
             "objectKey": "backgrounds/a4.png", "mediaType": "image/png", "widthPx": 2481, "heightPx": 3508}})
         signature = AwardsHandler.register_asset(None, {"_body": {"kind": "SIGNATURE", "name": "Award manager",
             "objectKey": "signatures/manager.png", "mediaType": "image/png", "widthPx": 1200, "heightPx": 360}})
+        self.assertEqual(background["bucket"], "myota-award-assets")
+        self.assertEqual(signature["bucket"], "myota-award-signatures")
         award = AwardsHandler.save_award(None, {"_body": {"programmeSlug": "regional-ota", "code": "SEVILLA-50",
             "name": "Sevilla Fifty", "category": "HUNTER", "achievementMetric": "QSO_COUNT",
             "condition": {"kind": "ENTITY_TYPE", "values": ["MUNICIPAL_PARK"]},
@@ -71,7 +75,7 @@ class AwardServiceTests(unittest.TestCase):
             stored = AwardsHandler.asset_content(None, {"assetId": asset["id"], "_body": {"contentBase64": content}})
             self.assertEqual(stored["contentStatus"], "STORED")
             self.assertTrue(stored["contentSha256"])
-            self.assertTrue(os.path.exists(os.path.join(directory, "myota-awards", "signatures", "manager.bin")))
+            self.assertTrue(os.path.exists(os.path.join(directory, "myota-award-signatures", "signatures", "manager.bin")))
 
     def test_issuance_renders_pdf_when_local_assets_exist(self) -> None:
         try:

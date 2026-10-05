@@ -77,7 +77,8 @@ geodataImportRetention:
 objectStorage:
   endpoint: http://myota-seaweedfs:8333
   publicEndpoint: ""
-  awardBucket: myota-awards
+  awardAssetBucket: myota-award-assets
+  awardSignatureBucket: myota-award-signatures
   certificateBucket: myota-certificates
   adifBucket: myota-adif
   geodataImportBucket: myota-geodata-imports

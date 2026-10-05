@@ -164,7 +164,8 @@ services:
       MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
-      MYOTA_OBJECT_STORAGE_BUCKET: myota-awards
+      MYOTA_AWARD_ASSET_BUCKET: myota-award-assets
+      MYOTA_AWARD_SIGNATURE_BUCKET: myota-award-signatures
       MYOTA_CERTIFICATE_BUCKET: myota-certificates
       MYOTA_ACTIVITY_DB_POOL_MAX: "12"
       MYOTA_HTTP_MAX_WORKERS: "64"

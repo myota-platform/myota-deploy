@@ -57,8 +57,10 @@ spec:
               valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.accessKeyKey }}}}
             - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
               valueFrom: {secretKeyRef: {name: {{ $.Values.objectStorage.existingSecret }}, key: {{ $.Values.objectStorage.secretKeyKey }}}}
-            - name: MYOTA_OBJECT_STORAGE_BUCKET
-              value: {{ $.Values.objectStorage.awardBucket | quote }}
+            - name: MYOTA_AWARD_ASSET_BUCKET
+              value: {{ $.Values.objectStorage.awardAssetBucket | quote }}
+            - name: MYOTA_AWARD_SIGNATURE_BUCKET
+              value: {{ $.Values.objectStorage.awardSignatureBucket | quote }}
             - name: MYOTA_CERTIFICATE_BUCKET
               value: {{ $.Values.objectStorage.certificateBucket | quote }}
             - name: MYOTA_ACTIVITY_DB_POOL_MAX
