@@ -68,8 +68,9 @@ The chart schedules separate object-retention jobs. Geodata import sources and
 their import history use the configurable 30-day policy under
 `geodataImportRetention`; completed ADIF source files are deleted after 15 days
 by `activityAdifRetention`, while the activity import result remains in
-PostgreSQL. Queued, processing, and failed ADIF imports are excluded. Award
-assets, signatures, and issued certificates are not covered by either policy.
+PostgreSQL. Both completed and failed imports qualify; queued and processing
+imports are excluded. Award assets, signatures, and issued certificates are
+not covered by either policy.
 
 Prometheus, Alertmanager, Grafana, and Tempo are enabled by default in the
 chart and use separate persistent claims (10 GiB, 1 GiB, 1 GiB, and 10 GiB by

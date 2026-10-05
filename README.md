@@ -87,8 +87,8 @@ use distinct buckets to isolate contents and lifecycle policies:
 | Award-manager signatures | `myota-award-signatures` | `MYOTA_AWARD_SIGNATURE_BUCKET` / `objectStorage.awardSignatureBucket` |
 | Issued award certificates | `myota-certificates` | `MYOTA_CERTIFICATE_BUCKET` / `objectStorage.certificateBucket` |
 
-Completed ADIF source objects in `myota-adif` are deleted after 15 days; the
-activity import result remains in PostgreSQL. Queued, processing, and failed
+Completed and failed ADIF source objects in `myota-adif` are deleted after 15
+days; the activity import result remains in PostgreSQL. Queued and processing
 ADIF imports are excluded. The separate geodata-import bucket is subject to
 its own 30-day import expunge.
 Existing object references keep their recorded bucket; installations upgrading
@@ -137,10 +137,11 @@ runs age from finalization; pending, failed, and stalled imports age from their
 latest activity. Active heartbeats keep long-running work safe. The worker
 does not remove promoted entities or provenance.
 The daily `activityAdifRetention` CronJob (and local Compose retention worker)
-deletes only the source object for completed ADIF imports after 15 days. Its
-database marker makes deletion safely retryable; import status, result counts,
-and diagnostics remain available. The policy never applies to award assets,
-signatures, or issued certificates.
+deletes source objects for completed or failed ADIF imports after 15 days from
+their terminal processing timestamp. Its database marker makes deletion
+safely retryable; import status, result counts, and diagnostics remain
+available. Queued and processing imports are excluded. The policy never
+applies to award assets, signatures, or issued certificates.
 For deployment to the Spainip K3s cluster through Rancher Fleet and Traefik,
 see [`deploy/helm/myota/DEPLOYMENT.md`](deploy/helm/myota/DEPLOYMENT.md) and
 the non-secret Fleet values in
