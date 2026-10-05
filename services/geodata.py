@@ -24,6 +24,8 @@ from import_formats import SUPPORTED_FORMATS, TEXT_FORMATS, parse_text, parse_up
 from location_catalog import build_location_tree, derive_location_codes
 from reverse_geocoder import LOCATION_FIELDS, enrich_entity_location
 
+GEODATA_IMPORT_BUCKET = os.environ.get("MYOTA_GEODATA_IMPORT_BUCKET", "myota-geodata-imports")
+
 
 def entity_type_codes(value: Any, fallback: Any = None) -> list[str]:
     """Return stable shared category codes, keeping the first as primary."""
@@ -486,7 +488,7 @@ class GeoHandler(JsonHandler):
         from storage import ObjectStore
 
         safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", filename or "import.geojson")
-        bucket = "myota-geodata-imports"
+        bucket = GEODATA_IMPORT_BUCKET
         object_key = f"geodata-import-sources/{run_id}-{safe_name}"
         stored = ObjectStore().put(bucket, object_key, content, "application/octet-stream")
         return {**(body.get("source") or {}), "bucket": bucket, "objectKey": object_key,
@@ -705,7 +707,7 @@ class GeoHandler(JsonHandler):
         elif (body.get("source") or {}).get("objectKey"):
             from storage import ObjectStore
             object_source = body["source"]
-            content = ObjectStore().get(object_source.get("bucket", "myota-geodata-imports"), object_source["objectKey"])
+            content = ObjectStore().get(object_source.get("bucket", GEODATA_IMPORT_BUCKET), object_source["objectKey"])
             if content is None:
                 raise ValueError("source object was not found")
         else:
@@ -719,7 +721,7 @@ class GeoHandler(JsonHandler):
         try:
             from storage import ObjectStore
             scan = ObjectStore.scan_path(upload_path, body["filename"]) if upload_path else ObjectStore.scan_content(content, body["filename"])
-            bucket = "myota-geodata-imports"
+            bucket = GEODATA_IMPORT_BUCKET
             if (body.get("source") or {}).get("objectKey"):
                 body = {**body, "source": {**body["source"], "bucket": body["source"].get("bucket", bucket), "sha256": scan["sha256"], "scan": scan}}
             else:

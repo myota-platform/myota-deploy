@@ -166,6 +166,31 @@ class ObjectStore:
         except Exception:
             return None
 
+    def delete(self, bucket: str, object_key: str) -> None:
+        """Delete one object; a missing object is already in the desired state."""
+        if self.local_root:
+            root = self.local_root.resolve()
+            key = Path(object_key)
+            if key.is_absolute() or ".." in key.parts:
+                raise ValueError("object key must be a relative path without parent traversal")
+            bucket_root = (root / bucket).resolve()
+            path = (bucket_root / key).resolve()
+            if not path.is_relative_to(bucket_root):
+                raise ValueError("object key escapes its bucket")
+            path.unlink(missing_ok=True)
+            parent = path.parent
+            while parent != bucket_root:
+                try:
+                    parent.rmdir()
+                except OSError:
+                    break
+                parent = parent.parent
+            return
+        client = self._client()
+        if not client:
+            raise RuntimeError("boto3 is not installed")
+        client.delete_object(Bucket=bucket, Key=object_key)
+
     def presigned_put(self, bucket: str, object_key: str) -> str | None:
         if self.local_root:
             return None

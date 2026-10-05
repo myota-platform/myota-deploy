@@ -1,0 +1,45 @@
+{{- if .Values.geodataImportRetention.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: myota-geodata-import-retention
+spec:
+  schedule: {{ .Values.geodataImportRetention.schedule | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: myota
+            app.kubernetes.io/component: geodata-import-retention
+        spec:
+          restartPolicy: OnFailure
+          initContainers:
+            {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "geo-database-url") | nindent 12 }}
+          containers:
+            - name: retention
+              image: "{{ .Values.services.geodata.imageRepository }}:{{ default .Values.image.tag .Values.services.geodata.imageTag }}"
+              command: ["python3", "geodata_retention_worker.py"]
+              env:
+                - name: GEO_DATABASE_URL
+                  valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: geo-database-url}}
+                - name: MYOTA_OBJECT_STORAGE_ENDPOINT
+                  value: {{ .Values.objectStorage.endpoint | quote }}
+                - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: {{ .Values.objectStorage.accessKeyKey }}}}
+                - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
+                  valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: {{ .Values.objectStorage.secretKeyKey }}}}
+                - name: MYOTA_GEODATA_IMPORT_BUCKET
+                  value: {{ .Values.objectStorage.geodataImportBucket | quote }}
+                - name: GEODATA_IMPORT_RETENTION_DAYS
+                  value: {{ .Values.geodataImportRetention.retentionDays | quote }}
+                - name: GEODATA_IMPORT_RETENTION_BATCH_SIZE
+                  value: {{ .Values.geodataImportRetention.batchSize | quote }}
+              resources: {{- toYaml .Values.resources | nindent 16 }}
+{{- end }}

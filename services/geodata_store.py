@@ -7,7 +7,9 @@ manual proposal is durable and visible to GIS tooling.
 from __future__ import annotations
 
 import json
+import os
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from common import Store, now
@@ -32,6 +34,35 @@ def _entity_categories(entity: dict[str, Any]) -> list[str]:
         if code and code not in result:
             result.append(code)
     return result
+
+
+def _cached_import_expired(run: dict[str, Any], now: datetime | None = None) -> bool:
+    """Mirror database retention rules so stale API memory cannot resurrect runs."""
+    status = str(run.get("status") or "").upper()
+    days = int(os.environ.get("GEODATA_IMPORT_RETENTION_DAYS", "30"))
+    if status == "PROCESSED":
+        values = [run.get("processedAt")]
+    elif status in {"UPLOAD_PENDING", "QUEUED", "PROCESSING", "PREPROCESSED",
+                    "PREPROCESSED_WITH_ERRORS", "COMPLETED", "COMPLETED_WITH_ERRORS", "FAILED"}:
+        values = [run.get("startedAt") or run.get("queuedAt"), run.get("heartbeatAt"), run.get("completedAt")]
+    else:
+        return False
+    timestamps = []
+    for value in values:
+        if not value:
+            continue
+        if isinstance(value, datetime):
+            parsed = value
+        else:
+            try:
+                parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            except ValueError:
+                continue
+        timestamps.append(parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed)
+    if not timestamps:
+        return False
+    reference = min(timestamps) if status == "PROCESSED" else max(timestamps)
+    return reference < (now or datetime.now(timezone.utc)) - timedelta(days=days)
 
 
 class GeodataStore(Store):
@@ -101,7 +132,11 @@ class GeodataStore(Store):
                 self._upsert_entity(connection, entity)
             if not include_import_state:
                 return
-            for run in self.data.get("importRuns", {}).values():
+            import_runs = self.data.get("importRuns", {})
+            for run_id, run in list(import_runs.items()):
+                if _cached_import_expired(run):
+                    import_runs.pop(run_id, None)
+            for run in import_runs.values():
                 run_id = _uuid(run.get("id"))
                 if not run_id:
                     continue

@@ -69,6 +69,11 @@ activityNotifications:
 geodataImportProcessing:
   enabled: true
   replicas: 1
+geodataImportRetention:
+  enabled: true
+  schedule: "17 3 * * *"
+  retentionDays: 30
+  batchSize: 100
 objectStorage:
   endpoint: http://myota-seaweedfs:8333
   publicEndpoint: ""

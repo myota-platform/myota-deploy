@@ -84,10 +84,24 @@ services:
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+      MYOTA_GEODATA_IMPORT_BUCKET: myota-geodata-imports
+      GEODATA_IMPORT_RETENTION_DAYS: "30"
       BIGDATACLOUD_API_KEY: \${BIGDATACLOUD_API_KEY:-}
       BIGDATACLOUD_LOCALITY_LANGUAGE: \${BIGDATACLOUD_LOCALITY_LANGUAGE:-en}
     depends_on: {migrations: {condition: service_completed_successfully}}
     ports: ["8003:8003"]
+  geodata-import-retention:
+    image: ghcr.io/myota-platform/myota-geodata-service:latest
+    command: ["python3", "geodata_retention_worker.py", "--loop"]
+    environment:
+      GEO_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+      MYOTA_GEODATA_IMPORT_BUCKET: myota-geodata-imports
+      GEODATA_IMPORT_RETENTION_DAYS: "30"
+      GEODATA_IMPORT_RETENTION_INTERVAL_SECONDS: "86400"
+    depends_on: {migrations: {condition: service_completed_successfully}}
   activity:
     image: ghcr.io/myota-platform/myota-activity-service:latest
     environment:

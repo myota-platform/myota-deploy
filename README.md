@@ -109,6 +109,11 @@ The Helm chart exposes the same processor as
 `geodataImportProcessing`, so production Kubernetes deployments keep the
 promotion worker separate from the HTTP geodata pods. Helm rendering and
 linting run in the GitHub workflow rather than being a local prerequisite.
+The daily `geodataImportRetention` CronJob (and local Compose retention worker)
+expunges source objects and import-specific history after 30 days. `PROCESSED`
+runs age from finalization; pending, failed, and stalled imports age from their
+latest activity. Active heartbeats keep long-running work safe. The worker
+does not remove promoted entities or provenance.
 For deployment to the Spainip K3s cluster through Rancher Fleet and Traefik,
 see [`deploy/helm/myota/DEPLOYMENT.md`](deploy/helm/myota/DEPLOYMENT.md) and
 the non-secret Fleet values in

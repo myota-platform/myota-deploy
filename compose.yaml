@@ -126,6 +126,8 @@ services:
       MYOTA_OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+      MYOTA_GEODATA_IMPORT_BUCKET: myota-geodata-imports
+      GEODATA_IMPORT_RETENTION_DAYS: "30"
       NATS_URL: nats://nats:4222
       MYOTA_OTEL_ENABLED: "1"
       OTEL_SERVICE_NAME: myota-geodata
@@ -134,6 +136,22 @@ services:
     volumes:
       - geodata-upload-spool:/var/lib/myota/geodata-upload-spool
     ports: ["8003:8003"]
+  geodata-import-retention:
+    build: ../myota-geodata-service
+    restart: unless-stopped
+    command: ["python3", "geodata_retention_worker.py", "--loop"]
+    environment:
+      GEO_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+      MYOTA_GEODATA_IMPORT_BUCKET: myota-geodata-imports
+      GEODATA_IMPORT_RETENTION_DAYS: "30"
+      GEODATA_IMPORT_RETENTION_INTERVAL_SECONDS: "86400"
+    depends_on:
+      migrations: {condition: service_completed_successfully}
+      geo-db: {condition: service_healthy}
+      seaweedfs: {condition: service_healthy}
   activity:
     build: .
     restart: unless-stopped
