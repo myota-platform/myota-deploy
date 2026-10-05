@@ -40,6 +40,8 @@ data:
 {{ .Files.Get "observability/grafana/dashboards/myota-operations.json" | indent 4 }}
   myota-api-performance.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-api-performance.json" | indent 4 }}
+  myota-geodata-capacity.json: |
+{{ .Files.Get "observability/grafana/dashboards/myota-geodata-capacity.json" | indent 4 }}
   alert-rules.yml: |
 {{ .Files.Get "observability/grafana/provisioning/alerting/alert-rules.yml" | indent 4 }}
   contact-points.yml: |
@@ -235,6 +237,7 @@ spec:
             - {name: config, mountPath: /etc/grafana/provisioning/alerting/policies.yml, subPath: policies.yml}
             - {name: config, mountPath: /etc/grafana/dashboards/myota-operations.json, subPath: myota-operations.json}
             - {name: config, mountPath: /etc/grafana/dashboards/myota-api-performance.json, subPath: myota-api-performance.json}
+            - {name: config, mountPath: /etc/grafana/dashboards/myota-geodata-capacity.json, subPath: myota-geodata-capacity.json}
             - {name: data, mountPath: /var/lib/grafana}
       volumes:
         - name: config

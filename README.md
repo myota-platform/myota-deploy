@@ -43,6 +43,9 @@ awards, workers, queue lag, HTTP errors and OTel latency. The separate
 and availability graphs for every observed service; each graph is split by
 normalized API route and HTTP method. It does not contain synthetic business
 values.
+The **MyOTA Geodata capacity baseline** dashboard adds per-instance process
+CPU/memory, request-size and in-flight measurements, PostgreSQL pool and lock
+pressure, and durable import/outbox queue age and throughput signals.
 
 Enable the local observability profile with:
 

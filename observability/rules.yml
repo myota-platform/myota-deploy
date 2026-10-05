@@ -74,3 +74,31 @@ groups:
         annotations:
           summary: MyOTA API p95 latency is critical
           description: '{{ $labels.service_name }} {{ $labels.http_request_method }} {{ $labels.http_route }} p95 latency has exceeded five seconds for five minutes.'
+      - alert: MyOTAGeodataDatabasePoolWaiting
+        expr: myota_geodata_postgres_pool_waiting_requests{job="myota-otel-collector"} > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Geodata API is waiting for PostgreSQL pool connections
+          description: Geodata database requests have waited for a pooled connection for five minutes; check API replica count and database capacity.
+      - alert: MyOTAGeodataOutboxBacklog
+        expr: myota_geodata_outbox_oldest_pending_age_seconds{job="myota-otel-collector"} > 120
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Geodata events are waiting to publish
+          description: The oldest unpublished geodata outbox event is over two minutes old.
+      - alert: MyOTAGeodataImportQueueAge
+        expr: myota_geodata_import_oldest_queued_age_seconds{job="myota-otel-collector"} > 600
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Geodata import queue is aging
+          description: A queued geodata import has waited over ten minutes; inspect worker health and JetStream delivery.
+      - alert: MyOTAGeodataImportHeartbeatStale
+        expr: myota_geodata_import_oldest_processing_heartbeat_age_seconds{job="myota-otel-collector"} > 900
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: A geodata import has a stale processing heartbeat
+          description: A processing import heartbeat is older than the default lease interval; inspect and recover the run.
