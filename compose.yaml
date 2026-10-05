@@ -190,6 +190,25 @@ services:
       MYOTA_CERTIFICATE_BUCKET: myota-certificates
       MYOTA_ACTIVITY_DB_POOL_MAX: "4"
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}, seaweedfs: {condition: service_healthy}}
+  activity-adif-retention:
+    build: ../myota-activity-service
+    restart: unless-stopped
+    command: ["python3", "adif_retention_worker.py", "--loop"]
+    environment:
+      ACTIVITY_DATABASE_URL: postgresql://myota:myota-dev-only@activity-db:5432/myota_activity
+      MYOTA_REQUIRE_DURABILITY: "1"
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+      MYOTA_ADIF_BUCKET: myota-adif
+      MYOTA_ADIF_RETENTION_DAYS: "15"
+      MYOTA_ADIF_RETENTION_BATCH_SIZE: "500"
+      MYOTA_ADIF_RETENTION_INTERVAL_SECONDS: "86400"
+      MYOTA_ACTIVITY_DB_POOL_MAX: "2"
+    depends_on:
+      migrations: {condition: service_completed_successfully}
+      activity-db: {condition: service_healthy}
+      seaweedfs: {condition: service_healthy}
   activity-notifications:
     build: .
     restart: unless-stopped

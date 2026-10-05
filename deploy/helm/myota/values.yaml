@@ -66,6 +66,11 @@ activityWorkers:
 activityNotifications:
   enabled: true
   replicas: 1
+activityAdifRetention:
+  enabled: true
+  schedule: "47 3 * * *"
+  retentionDays: 15
+  batchSize: 500
 geodataImportProcessing:
   enabled: true
   replicas: 1

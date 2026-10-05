@@ -93,6 +93,8 @@ psql_target "$ACTIVITY_HOST" "$ACTIVITY_PORT" "$ACTIVITY_DATABASE" \
   -f "$MIGRATION_FILES_DIR/activity/001_activity_relational.sql"
 psql_target "$ACTIVITY_HOST" "$ACTIVITY_PORT" "$ACTIVITY_DATABASE" \
   -f "$MIGRATION_FILES_DIR/activity/002_activity_entity_deletion.sql"
+psql_target "$ACTIVITY_HOST" "$ACTIVITY_PORT" "$ACTIVITY_DATABASE" \
+  -f "$MIGRATION_FILES_DIR/activity/003_adif_source_retention.sql"
 
 for migration in \
   001_geodata.sql \

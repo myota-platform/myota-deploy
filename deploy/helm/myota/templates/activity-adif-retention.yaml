@@ -1,0 +1,49 @@
+{{- if .Values.activityAdifRetention.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: myota-adif-retention
+spec:
+  schedule: {{ .Values.activityAdifRetention.schedule | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: myota
+            app.kubernetes.io/component: adif-retention
+        spec:
+          restartPolicy: OnFailure
+          initContainers:
+            {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "activity-database-url") | nindent 12 }}
+          containers:
+            - name: retention
+              image: "{{ .Values.services.activity.imageRepository }}:{{ default .Values.image.tag .Values.services.activity.imageTag }}"
+              command: ["python3", "adif_retention_worker.py"]
+              env:
+                - name: ACTIVITY_DATABASE_URL
+                  valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: activity-database-url}}
+                - name: MYOTA_REQUIRE_DURABILITY
+                  value: "1"
+                - name: MYOTA_ACTIVITY_DB_POOL_MAX
+                  value: "2"
+                - name: MYOTA_OBJECT_STORAGE_ENDPOINT
+                  value: {{ .Values.objectStorage.endpoint | quote }}
+                - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: {{ .Values.objectStorage.accessKeyKey }}}}
+                - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
+                  valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: {{ .Values.objectStorage.secretKeyKey }}}}
+                - name: MYOTA_ADIF_BUCKET
+                  value: {{ .Values.objectStorage.adifBucket | quote }}
+                - name: MYOTA_ADIF_RETENTION_DAYS
+                  value: {{ .Values.activityAdifRetention.retentionDays | quote }}
+                - name: MYOTA_ADIF_RETENTION_BATCH_SIZE
+                  value: {{ .Values.activityAdifRetention.batchSize | quote }}
+              resources: {{- toYaml .Values.resources | nindent 16 }}
+{{- end }}
