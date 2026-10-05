@@ -116,7 +116,9 @@ services:
       SERVICE: geodata
       GEO_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
+      MYOTA_ENV: development
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_LOAD_TEST_CLEANUP_ENABLED: "1"
       MYOTA_MAX_BODY_BYTES: "1073741824"
       MYOTA_UPLOAD_MAX_BYTES: "1073741824"
       # Keep large dataset parsing bounded; uploads remain concurrent and durable.

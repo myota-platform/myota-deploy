@@ -46,6 +46,11 @@ values.
 The **MyOTA Geodata capacity baseline** dashboard adds per-instance process
 CPU/memory, request-size and in-flight measurements, PostgreSQL pool and lock
 pressure, and durable import/outbox queue age and throughput signals.
+The **MyOTA JetStream backlog and PostGIS query performance** dashboard shows
+broker-side pending/ack-pending, redelivery, and oldest-message-age signals,
+alongside slow-query counts and actual PostGIS query latency. Grafana's
+provisioned dashboard directory matches the mounted dashboard files for both
+Compose and Helm.
 
 Enable the local observability profile with:
 
