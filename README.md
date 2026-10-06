@@ -139,6 +139,13 @@ The Helm chart exposes the same processor as
 `geodataImportProcessing`, so production Kubernetes deployments keep the
 promotion worker separate from the HTTP geodata pods. Helm rendering and
 linting run in the GitHub workflow rather than being a local prerequisite.
+The production geodata load-test cleanup endpoint is disabled by default.
+For an approved load-test window only, set
+`geodataLoadTestCleanup.enabled=true` and
+`geodataLoadTestCleanup.allowProductionCleanup=true` with
+`auth.environment=production`; immediately disable both settings after the
+test's cleanup succeeds. The API requires a dedicated `GLOBAL_ADMIN` and
+refuses deletion of fixtures linked to QSOs, activations, or award progress.
 The daily `geodataImportRetention` CronJob (and local Compose retention worker)
 expunges source objects and import-specific history after 30 days. `PROCESSED`
 runs age from finalization; pending, failed, and stalled imports age from their

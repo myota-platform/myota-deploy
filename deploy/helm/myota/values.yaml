@@ -111,6 +111,11 @@ geodataPipeline:
     enabled: false
     schedule: "0 * * * *"
     image: ghcr.io/myota-platform/myota-service:latest
+geodataLoadTestCleanup:
+  # Production load-test writes are never enabled by default. Set enabled and
+  # allowProductionCleanup only for a planned run with a dedicated admin.
+  enabled: false
+  allowProductionCleanup: false
 geodataUploadSpool:
   enabled: true
   storageSize: 20Gi

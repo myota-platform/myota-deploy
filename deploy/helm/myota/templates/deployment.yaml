@@ -38,6 +38,14 @@ spec:
               value: "1"
             - name: MYOTA_ENV
               value: {{ $.Values.auth.environment | quote }}
+            {{- if eq $name "geodata" }}
+            - name: MYOTA_LOAD_TEST_CLEANUP_ENABLED
+              value: {{ ternary "1" "0" $.Values.geodataLoadTestCleanup.enabled | quote }}
+            {{- if and $.Values.geodataLoadTestCleanup.enabled $.Values.geodataLoadTestCleanup.allowProductionCleanup (eq $.Values.auth.environment "production") }}
+            - name: MYOTA_LOAD_TEST_ALLOW_PRODUCTION_CLEANUP
+              value: "YES"
+            {{- end }}
+            {{- end }}
             - name: MYOTA_AUTH_SIGNING_KEY
               valueFrom: {secretKeyRef: {name: {{ $.Values.auth.existingSecret }}, key: signing-key}}
             {{- if $.Values.observability.enabled }}
