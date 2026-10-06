@@ -64,6 +64,12 @@ K3s rollout but are not highly available. Back up their PVCs off-host, and
 review PVC sizes and StorageClass for your actual datasets before the first
 upload.
 
+The geodata service calls the activity API for entity-deletion impact checks,
+including load-test cleanup safeguards. `services.activity.internalUrl`
+configures this in-cluster endpoint and defaults to
+`http://myota-activity:8004`; if service names or namespaces are customized,
+keep this URL aligned with the Activity Service DNS name.
+
 The chart schedules separate object-retention jobs. Geodata import sources and
 their import history use the configurable 30-day policy under
 `geodataImportRetention`; completed ADIF source files are deleted after 15 days

@@ -39,6 +39,8 @@ spec:
             - name: MYOTA_ENV
               value: {{ $.Values.auth.environment | quote }}
             {{- if eq $name "geodata" }}
+            - name: MYOTA_ACTIVITY_URL
+              value: {{ $.Values.services.activity.internalUrl | quote }}
             - name: MYOTA_LOAD_TEST_CLEANUP_ENABLED
               value: {{ ternary "1" "0" $.Values.geodataLoadTestCleanup.enabled | quote }}
             {{- if and $.Values.geodataLoadTestCleanup.enabled $.Values.geodataLoadTestCleanup.allowProductionCleanup (eq $.Values.auth.environment "production") }}

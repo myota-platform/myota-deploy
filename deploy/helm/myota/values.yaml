@@ -55,6 +55,8 @@ services:
     imageRepository: ghcr.io/myota-platform/myota-activity-service
     imageTag: ""
     port: 8004
+    # Internal cluster URL used by geodata for deletion-impact checks.
+    internalUrl: http://myota-activity:8004
     replicas: 3
     dbPoolMax: 12
     httpMaxWorkers: 64
