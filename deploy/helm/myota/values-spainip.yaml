@@ -3,6 +3,10 @@ image:
   tag: latest
   pullPolicy: Always
 
+geodataLoadTestCleanup:
+  enabled: true
+  allowProductionCleanup: true
+
 ingress:
   enabled: true
   provider: traefik
