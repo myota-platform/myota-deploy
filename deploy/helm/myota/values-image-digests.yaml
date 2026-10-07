@@ -6,6 +6,6 @@ imageRollout:
     programmes: "sha256:d48c20088c837ba88db6e5c8bc09094ed01a31aea38da3a8f763ffdd9235452b"
     geodata: "sha256:78dc704ee7989816da4cc0eee7f498641d2ee59e8cf7cadf62699681ae289d0c"
     activity: "sha256:b2b866ae4f082258fdcf011aec9139b128b9488421eeedd7b58e5b65f5f8daec"
-    gateway: "sha256:2885bba82c01fe3dc5e2e18fafd33bcb40ec6a18af017d0e8799c774ce4ea966"
+    gateway: "sha256:042c1960af77c359ecd8156f0a076bb6d777f2e7ec439788429208e761cd4ae3"
     adminWeb: "sha256:5f0dafd6b0a2e2b5da6a92cafdc5107dd060003f76dbf2046a97c89ee676e543"
-    platform: "sha256:a7ef93f49aabfb8c7a3ba11ed2cfd414a1b6b9eabc747e2ce9f4ca02ebc920b7"
+    platform: "sha256:3903270b45ea3fb5b5849b97d72dee1293e94401ff1007138c18ee9858676c1c"
