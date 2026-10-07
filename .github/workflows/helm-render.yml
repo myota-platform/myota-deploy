@@ -49,6 +49,7 @@ jobs:
           --namespace myota
           --kube-version 1.30.0
           --values deploy/helm/myota/values-spainip.yaml
+          --values deploy/helm/myota/values-image-digests.yaml
           > /tmp/myota-spainip-rendered.yaml
 
       - name: Verify migration gate and Traefik routes
@@ -56,6 +57,9 @@ jobs:
           grep -q 'name: myota-migrations-' /tmp/myota-spainip-rendered.yaml
           grep -q 'imagePullPolicy: "Always"' /tmp/myota-spainip-rendered.yaml
           grep -q 'value: "1073741824"' /tmp/myota-spainip-rendered.yaml
+          grep -q 'name: MYOTA_ACCESS_TOKEN_SECONDS' /tmp/myota-spainip-rendered.yaml
+          grep -q 'value: "1800"' /tmp/myota-spainip-rendered.yaml
+          grep -q 'rollout.myota.dev/image-digest' /tmp/myota-spainip-rendered.yaml
           grep -q 'name: wait-for-schema' /tmp/myota-spainip-rendered.yaml
           grep -q 'kind: IngressRoute' /tmp/myota-spainip-rendered.yaml
           grep -q 'maxSurge: 0' /tmp/myota-spainip-rendered.yaml

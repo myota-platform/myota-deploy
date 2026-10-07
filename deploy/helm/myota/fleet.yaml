@@ -4,6 +4,7 @@ helm:
   releaseName: myota
   valuesFiles:
     - values-spainip.yaml
+    - values-image-digests.yaml
   waitForJobs: true
   timeoutSeconds: 1800
   # Preserve database StatefulSets and failed migration Jobs for inspection;

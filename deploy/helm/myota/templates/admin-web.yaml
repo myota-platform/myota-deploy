@@ -7,7 +7,10 @@ spec:
   replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: admin-web}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: admin-web}}
+    metadata:
+      labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: admin-web}
+      annotations:
+        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.adminWeb | default "untracked" | quote }}
     spec:
       containers:
         - name: admin-web

@@ -1,0 +1,45 @@
+name: Roll out newly published service images
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-production-image-digests
+  cancel-in-progress: false
+
+jobs:
+  detect-and-record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out deployment configuration
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Install crane
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+      - run: go install github.com/google/go-containerregistry/cmd/crane@v0.20.3
+
+      - name: Record current public image digests
+        run: python3 scripts/sync-image-digests.py
+
+      - name: Commit digest changes for Fleet reconciliation
+        run: |
+          if git diff --quiet -- deploy/helm/myota/values-image-digests.yaml; then
+            echo "All deployed image tags are unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/helm/myota/values-image-digests.yaml
+          git commit \
+            -m "chore(deploy): roll out newly published service images" \
+            -m "Record the current GHCR image digests in Fleet values so the Helm pod templates change and Kubernetes performs a rolling update."
+          git push
