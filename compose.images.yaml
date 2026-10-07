@@ -81,6 +81,7 @@ services:
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       MYOTA_MAX_BODY_BYTES: "1073741824"
       MYOTA_UPLOAD_MAX_BYTES: "1073741824"
+      MYOTA_UPLOAD_PART_MAX_BYTES: "16777216"
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
       MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
       MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
@@ -102,6 +103,23 @@ services:
       GEODATA_IMPORT_RETENTION_DAYS: "30"
       GEODATA_IMPORT_RETENTION_INTERVAL_SECONDS: "86400"
     depends_on: {migrations: {condition: service_completed_successfully}}
+  geodata-import-processing:
+    image: ghcr.io/myota-platform/myota-geodata-service:latest
+    command: ["python3", "geodata_import_worker.py"]
+    restart: unless-stopped
+    environment:
+      GEO_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
+      MYOTA_REQUIRE_DURABILITY: "1"
+      MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      NATS_URL: nats://nats:4222
+      MYOTA_OBJECT_STORAGE_ENDPOINT: http://myota-seaweedfs:8333
+      MYOTA_OBJECT_STORAGE_ACCESS_KEY: myota-s3
+      MYOTA_OBJECT_STORAGE_SECRET_KEY: myota-s3-dev-only
+      MYOTA_GEODATA_IMPORT_BUCKET: myota-geodata-imports
+      GEODATA_WORKER_MAX_DELIVERIES: "100"
+      GEODATA_WORKER_ACK_WAIT_SECONDS: "120"
+      GEODATA_WORKER_MAX_ACK_PENDING: "1"
+    depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   activity:
     image: ghcr.io/myota-platform/myota-activity-service:latest
     environment:

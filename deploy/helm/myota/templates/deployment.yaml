@@ -108,10 +108,8 @@ spec:
               value: {{ $.Values.geodataPipeline.maxBodyBytes | quote }}
             - name: MYOTA_UPLOAD_MAX_BYTES
               value: {{ $.Values.geodataPipeline.maxUploadBytes | quote }}
-            - name: MYOTA_IMPORT_WORKERS
-              value: {{ default 1 $cfg.importWorkers | quote }}
-            - name: MYOTA_UPLOAD_SPOOL_DIR
-              value: /var/lib/myota/geodata-upload-spool
+            - name: MYOTA_UPLOAD_PART_MAX_BYTES
+              value: "16777216"
             - name: GEODATA_TILE_CACHE_TTL_SECONDS
               value: {{ $.Values.geodataPipeline.tileCacheTtlSeconds | quote }}
             {{- if $.Values.geodataPipeline.locationEnrichment.enabled }}
@@ -142,20 +140,9 @@ spec:
                   optional: true
             {{- end }}
           ports: [{name: http, containerPort: {{ $cfg.port }} }]
-          {{- if and (eq $name "geodata") $.Values.geodataUploadSpool.enabled }}
-          volumeMounts:
-            - name: geodata-upload-spool
-              mountPath: /var/lib/myota/geodata-upload-spool
-          {{- end }}
           readinessProbe: {httpGet: {path: /healthz, port: http}}
           livenessProbe: {httpGet: {path: /healthz, port: http}}
           resources: {{- toYaml $.Values.resources | nindent 12 }}
-      {{- if and (eq $name "geodata") $.Values.geodataUploadSpool.enabled }}
-      volumes:
-        - name: geodata-upload-spool
-          persistentVolumeClaim:
-            claimName: myota-geodata-upload-spool
-      {{- end }}
 ---
 {{- end }}
 {{- if .Values.activityWorkers.enabled }}
@@ -249,8 +236,9 @@ kind: Deployment
 metadata:
   name: myota-geodata-import-processing
 spec:
-  # This worker binds a durable JetStream consumer. Zero surge ensures the old
-  # pod exits before its replacement tries to bind the same consumer.
+  # Conservative rollout avoids consuming extra database/broker capacity while
+  # the old worker drains. Durable pull consumers and database leases make
+  # overlapping replicas safe when scaling the steady-state replica count.
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -262,14 +250,15 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}
       annotations:
-        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.platform | default "untracked" | quote }}
+        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.geodata | default "untracked" | quote }}
     spec:
+      terminationGracePeriodSeconds: 180
       initContainers:
         {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "geo-database-url") | nindent 8 }}
       containers:
         - name: geodata-import-processing
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          command: ["python3", "services/geodata_import_processing_worker.py"]
+          image: "{{ .Values.services.geodata.imageRepository }}:{{ default .Values.image.tag .Values.services.geodata.imageTag }}"
+          command: ["python3", "geodata_import_worker.py"]
           env:
             - name: GEO_DATABASE_URL
               valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: geo-database-url}}
@@ -279,6 +268,20 @@ spec:
               valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: signing-key}}
             - name: NATS_URL
               value: {{ .Values.nats.url | quote }}
+            - name: MYOTA_OBJECT_STORAGE_ENDPOINT
+              value: {{ .Values.objectStorage.endpoint | quote }}
+            - name: MYOTA_GEODATA_IMPORT_BUCKET
+              value: {{ .Values.objectStorage.geodataImportBucket | quote }}
+            - name: MYOTA_OBJECT_STORAGE_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: {{ .Values.objectStorage.accessKeyKey }}}}
+            - name: MYOTA_OBJECT_STORAGE_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: {{ .Values.objectStorage.existingSecret }}, key: {{ .Values.objectStorage.secretKeyKey }}}}
+            - name: GEODATA_WORKER_MAX_DELIVERIES
+              value: {{ .Values.geodataImportProcessing.maxDeliveries | quote }}
+            - name: GEODATA_WORKER_ACK_WAIT_SECONDS
+              value: "120"
+            - name: GEODATA_WORKER_MAX_ACK_PENDING
+              value: {{ .Values.geodataImportProcessing.maxAckPending | quote }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
 {{- end }}
 ---

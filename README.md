@@ -129,8 +129,10 @@ directory page and can log harmless broken-pipe messages when a probe closes
 early. Activity and awards share port 8004, while
 `activity-worker`, `activity-notifications`, `activity-adif-retention`, and `geodata-import-processing`
 run asynchronously and can be scaled independently. The geodata processing
-worker consumes `myota.geodata.import.process.v1` after an administrator
-confirms a selection. The activity migration is applied by
+worker consumes preprocessing and promotion subjects from durable JetStream
+pull consumers; promotion follows administrator confirmation. Browser uploads
+use bounded resumable SeaweedFS multipart sessions and need no shared
+upload-spool PVC. The activity migration is applied by
 `db/migrations/run.sh`; core, activity and geodata migration ownership is
 separated under `db/migrations/core/`, `db/migrations/activity/` and
 `db/migrations/geo/`. The canonical activity source is maintained in

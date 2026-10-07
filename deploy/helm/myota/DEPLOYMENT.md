@@ -57,8 +57,9 @@ secret manager); the listed keys are exact:
 | `myota-s3-auth` | `access-key`, `secret-key` | SeaweedFS and application S3-compatible access. The included Spainip values run single-node SeaweedFS with persistent storage; for an external S3/SeaweedFS service, disable `seaweedfs.enabled` and set `objectStorage.endpoint` and `objectStorage.publicEndpoint` as appropriate. |
 | `myota-geodata-enrichment` | `api-key` (optional) | BigDataCloud reverse-geocoding enrichment. Add the key only in Rancher/secret manager; without it, manually managed geodata remains usable but automatic enrichment is unavailable. |
 
-All three PostgreSQL databases, the upload spool, JetStream, and the example
-SeaweedFS deployment use persistent volume claims. The databases and SeaweedFS
+All three PostgreSQL databases, JetStream, and the example SeaweedFS deployment
+use persistent volume claims. Uploads use resumable SeaweedFS multipart
+sessions; the geodata API has no shared upload-spool volume. The databases and SeaweedFS
 are each single-node deployments: they are suitable for an initial single-node
 K3s rollout but are not highly available. Back up their PVCs off-host, and
 review PVC sizes and StorageClass for your actual datasets before the first
@@ -162,11 +163,13 @@ review the workflow result before Fleet reconciles them.
 - API gateway liveness and readiness probes use `/healthz`; the root path is
   not a health endpoint. When diagnosing an unready gateway, check the
   Deployment probe configuration and pod events before changing ingress.
-- The geodata import processor uses a single-replacement rolling strategy
-  (`maxSurge: 0`, `maxUnavailable: 1`). This prevents old and new worker pods
-  from overlapping while both could bind the same durable JetStream consumer.
-  During an upgrade, a short worker interruption is expected; the durable
-  queue and recovery logic resume pending work when the replacement is ready.
+- The geodata import worker uses a durable JetStream pull consumer and can be
+  scaled independently through `geodataImportProcessing.replicas`. Atomic
+  PostgreSQL leases and stable candidate/entity identities protect concurrent
+  delivery. The conservative rolling strategy (`maxSurge: 0`,
+  `maxUnavailable: 1`) allows a brief worker-capacity pause during upgrades;
+  unacknowledged messages remain durable and are redelivered. SIGTERM stops
+  pulls, drains the active delivery, and then closes the NATS connection.
 - Fleet's GitRepo polling interval controls when a pushed commit is fetched.
   A bundle re-sync only reapplies the revision Fleet has already fetched; it
   does not necessarily fetch a newer Git commit immediately. Check the

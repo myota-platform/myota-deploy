@@ -60,11 +60,6 @@ nats:
     storageSize: 8Gi
     storageClassName: ""
 
-geodataUploadSpool:
-  enabled: true
-  storageSize: 20Gi
-  storageClassName: ""
-
 auth:
   environment: production
   existingSecret: myota-auth

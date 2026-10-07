@@ -87,6 +87,8 @@ activityAdifRetention:
 geodataImportProcessing:
   enabled: true
   replicas: 1
+  maxAckPending: 4
+  maxDeliveries: 100
 geodataImportRetention:
   enabled: true
   schedule: "17 3 * * *"
@@ -129,10 +131,6 @@ geodataLoadTestCleanup:
   # allowProductionCleanup only for a planned run with a dedicated admin.
   enabled: false
   allowProductionCleanup: false
-geodataUploadSpool:
-  enabled: true
-  storageSize: 20Gi
-  storageClassName: ""
 postgres:
   enabled: false
   image: postgres:16-alpine

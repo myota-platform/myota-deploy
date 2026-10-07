@@ -82,7 +82,13 @@ for target in \
     VALUES ('deployment', false, $MYOTA_SCHEMA_REVISION)
     ON CONFLICT (id) DO UPDATE
       SET ready = false, release_revision = EXCLUDED.release_revision, updated_at = now();
-    GRANT SELECT ON public.myota_deployment_schema_state TO myota_app;
+    DO \$grant\$
+    BEGIN
+      IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'myota_app') THEN
+        EXECUTE 'GRANT SELECT ON public.myota_deployment_schema_state TO myota_app';
+      END IF;
+    END
+    \$grant\$;
   "
 done
 
@@ -111,7 +117,9 @@ for migration in \
   010_import_preprocessing.sql \
   011_import_recovery.sql \
   012_import_finalization.sql \
-  013_import_retention.sql; do
+  013_import_retention.sql \
+  014_resumable_uploads.sql \
+  015_jetstream_worker_dispatch.sql; do
   psql_target "$GEO_HOST" "$GEO_PORT" "$GEO_DATABASE" \
     -f "$MIGRATION_FILES_DIR/geo/$migration"
 done
