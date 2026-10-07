@@ -1,6 +1,20 @@
 groups:
   - name: myota-observability
     rules:
+      - alert: MyOTAJetStreamStatusUnavailable
+        expr: myota_operations_jetstream_up == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: Operational JetStream inspection is unavailable or partial
+          description: Check the operations service, broker permissions and inspection limits; this is not a zero-backlog reading.
+      - alert: MyOTAJetStreamStatusSamplesStale
+        expr: time() - myota_operations_jetstream_last_sample_timestamp_seconds > 120
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: JetStream status history is no longer being recorded
+          description: Check the operations sampler and its core database connection.
       - alert: MyOTAMetricsCollectorDown
         expr: up{job="myota-otel-collector"} == 0
         for: 2m

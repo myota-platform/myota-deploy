@@ -10,6 +10,7 @@ imageRollout:
     programmes: ""
     geodata: ""
     activity: ""
+    operations: ""
     gateway: ""
     adminWeb: ""
     platform: ""
@@ -49,6 +50,13 @@ ingress:
     secretName: ""
     certResolver: ""
 services:
+  operations:
+    imageRepository: ghcr.io/myota-platform/myota-operations-service
+    imageTag: ""
+    port: 8005
+    replicas: 1
+    pollSeconds: 30
+    historyDays: 7
   identity:
     imageRepository: ghcr.io/myota-platform/myota-identity-service
     imageTag: ""

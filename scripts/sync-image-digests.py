@@ -15,6 +15,7 @@ IMAGES = {
     "programmes": "ghcr.io/myota-platform/myota-programme-service:latest",
     "geodata": "ghcr.io/myota-platform/myota-geodata-service:latest",
     "activity": "ghcr.io/myota-platform/myota-activity-service:latest",
+    "operations": "ghcr.io/myota-platform/myota-operations-service:latest",
     "gateway": "ghcr.io/myota-platform/myota-gateway:latest",
     "adminWeb": "ghcr.io/myota-platform/myota-admin-web:latest",
     "platform": "ghcr.io/myota-platform/myota-service:latest",

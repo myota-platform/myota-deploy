@@ -41,6 +41,7 @@ psql_target() {
   local host="$1" port="$2" database="$3"
   shift 3
   PGHOST="$host" PGPORT="$port" PGDATABASE="$database" \
+    PGOPTIONS="${PGOPTIONS:-} -c myota.geodata_writer=row-v1" \
     psql -v ON_ERROR_STOP=1 "$@"
 }
 
@@ -94,6 +95,8 @@ done
 
 psql_target "$CORE_HOST" "$CORE_PORT" "$CORE_DATABASE" \
   -f "$MIGRATION_FILES_DIR/core/001_core.sql"
+psql_target "$CORE_HOST" "$CORE_PORT" "$CORE_DATABASE" \
+  -f "$MIGRATION_FILES_DIR/core/002_operations.sql"
 
 psql_target "$ACTIVITY_HOST" "$ACTIVITY_PORT" "$ACTIVITY_DATABASE" \
   -f "$MIGRATION_FILES_DIR/activity/001_activity_relational.sql"
@@ -119,7 +122,8 @@ for migration in \
   012_import_finalization.sql \
   013_import_retention.sql \
   014_resumable_uploads.sql \
-  015_jetstream_worker_dispatch.sql; do
+  015_jetstream_worker_dispatch.sql \
+  016_relational_authority.sql; do
   psql_target "$GEO_HOST" "$GEO_PORT" "$GEO_DATABASE" \
     -f "$MIGRATION_FILES_DIR/geo/$migration"
 done

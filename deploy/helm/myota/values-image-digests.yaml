@@ -2,6 +2,7 @@
 # Digest annotations trigger a Kubernetes rolling update when :latest changes.
 imageRollout:
   digests:
+    operations: ""
     identity: "sha256:0bc65f5e31927ec46886f2955cc90a45a93d297bcb6309c764fc9001c4c5551d"
     programmes: "sha256:1fec8a0688fcf907851a1016ede3b98c0216d5d4275d6d2536d5ea8296e26ed7"
     geodata: "sha256:6eaa32f796e8f19da7c14ed6273eebd22a2d17238e2a0e56da43dfc45a12af61"

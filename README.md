@@ -8,7 +8,9 @@ This repository supplies the durable local/production topology; it is not the
 owner of programme rules or the participant product. Remaining launch gates
 are tracked in the [charter gap analysis](https://github.com/myota-platform/myota-docs/blob/main/docs/charter-gap-analysis.md).
 
-This repository is a runnable vertical-slice bootstrap for the service repositories described in [`docs/repository-map.md`](docs/repository-map.md). It contains four independently runnable Python services, an API-first contract, a universal browser UI, PostGIS migrations, and Kubernetes/Helm deployment assets.
+This repository owns Compose, Fleet/Helm, migration orchestration and
+observability provisioning. Domain implementations remain in their service
+repositories; `services/` contains synchronized integration copies.
 
 ## What works now
 
@@ -32,6 +34,20 @@ This repository is a runnable vertical-slice bootstrap for the service repositor
   snapshot set. See the [Phase 3 job record](https://github.com/myota-platform/myota-docs/blob/main/docs/api-phase3-activity-award-jobs.md).
 
 ## Observability and Phase 4 operations
+
+The admin UI also exposes **NATS / JetStream** at `/jetstream`. The new
+`myota-operations-service` observes broker metadata without consuming business
+messages, retains samples for seven days in its own `myota_core` table, and
+serves permission-checked APIs through the gateway. Core migration 002 creates
+its table. Collector provisioning scrapes the service and alerts on service
+outages or stale successful samples. See the
+[status-page guide](https://github.com/myota-platform/myota-docs/blob/main/docs/jetstream-admin-status.md).
+
+Geodata migration 016 enables database-authoritative row state and fences
+obsolete writers. New API/worker images wait for its feature marker before
+accepting work. Build the matching images and follow the
+[coordinated upgrade procedure](https://github.com/myota-platform/myota-docs/blob/main/docs/geodata-phase1-relational-authority.md)
+instead of mixing snapshot-era and row-authoritative writers.
 
 Every HTTP service exposes a Prometheus-compatible `/metrics` endpoint with
 real service-owned aggregates. The OpenTelemetry SDK exports request metrics

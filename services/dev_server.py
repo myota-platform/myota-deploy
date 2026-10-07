@@ -17,6 +17,7 @@ from activity import ActivityHandler
 from geodata import GeoHandler
 from identity import IdentityHandler, bootstrap_admin, seed as seed_identity
 from programmes import ProgrammeHandler, seed as seed_programmes
+from operations import OperationsHandler
 from metrics import METRICS
 from otel import telemetry_for
 
@@ -27,6 +28,7 @@ SERVICES = {
     "/v1/entity-types": ("programmes", 8002, ProgrammeHandler),
     "/v1/programmes": ("programmes", 8002, ProgrammeHandler),
     "/v1/geodata/": ("geodata", 8003, GeoHandler),
+    "/v1/operations/": ("operations", 8005, OperationsHandler),
     "/v1/activations": ("activity", 8004, ActivityHandler),
     "/v1/awards": ("activity", 8004, ActivityHandler),
     "/v1/qso-ingestions": ("activity", 8004, ActivityHandler),
@@ -48,7 +50,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header(
             "Access-Control-Allow-Headers",
-            "Content-Type, Authorization, Idempotency-Key, X-Request-ID, X-Correlation-ID",
+            "Content-Type, Authorization, Idempotency-Key, If-Match, X-Request-ID, X-Correlation-ID",
         )
         self.send_header(
             "Access-Control-Allow-Methods",
@@ -236,7 +238,12 @@ class GatewayHandler(BaseHTTPRequestHandler):
         )
         if hasattr(upstream_headers, "__iter__"):
             for name, value in upstream_headers:
-                if name.lower() in {"deprecation", "sunset", "api-version"}:
+                if name.lower() in {
+                    "deprecation",
+                    "sunset",
+                    "api-version",
+                    "etag",
+                }:
                     self.send_header(name, value)
         self.end_headers()
         self.wfile.write(data)

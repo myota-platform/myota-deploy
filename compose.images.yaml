@@ -1,4 +1,15 @@
 services:
+  operations:
+    image: ghcr.io/myota-platform/myota-operations-service:latest
+    environment:
+      CORE_DATABASE_URL: postgresql://myota:myota-dev-only@core-db:5432/myota_core
+      MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
+      MYOTA_REQUIRE_DURABILITY: "1"
+      NATS_URL: nats://nats:4222
+      MYOTA_OTEL_ENABLED: "1"
+      OTEL_SERVICE_NAME: myota-operations
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   core-db:
     image: postgres:16-alpine
     environment:
@@ -108,6 +119,7 @@ services:
     command: ["python3", "geodata_import_worker.py"]
     restart: unless-stopped
     environment:
+      MYOTA_ACTIVITY_URL: http://activity:8004
       GEO_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
@@ -180,6 +192,7 @@ services:
       MYOTA_PROGRAMMES_URL: http://programmes:8002
       MYOTA_GEODATA_URL: http://geodata:8003
       MYOTA_ACTIVITY_URL: http://activity:8004
+      MYOTA_OPERATIONS_URL: http://operations:8005
       MYOTA_PROXY_UPLOAD_TIMEOUT_SECONDS: "3600"
     ports: ["8080:8080"]
   admin-web:

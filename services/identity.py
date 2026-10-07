@@ -36,6 +36,16 @@ SECURITY_EVENT_RETENTION_SECONDS = int(
 
 ADMIN_PERMISSION_CATALOG = [
     {
+        "code": "operations.read",
+        "label": "View NATS / JetStream status and sampled history",
+        "group": "Operations",
+    },
+    {
+        "code": "observability.view",
+        "label": "View platform operational status",
+        "group": "Operations",
+    },
+    {
         "code": "identity.admin",
         "label": "View and edit user accounts",
         "group": "Identity",
@@ -196,61 +206,6 @@ def iso_after(seconds: int) -> str:
 class IdentityHandler(JsonHandler):
     service = "identity-service"
     store = Store("identity", "CORE_DATABASE_URL")
-
-    @classmethod
-    def metrics_extra(cls) -> dict[str, float]:
-        """Expose persisted identity facts without labels containing PII."""
-        with cls.store.lock:
-            accounts = list(cls.store.items.values())
-            callsigns = [
-                callsign
-                for account in accounts
-                for callsign in account.get("callsigns", [])
-            ]
-            roles = list(cls._bucket("roles").values())
-            definitions = list(cls._bucket("roleDefinitions").values())
-            security_events = list(cls._bucket("securityEvents").values())
-            credentials = list(cls._bucket("credentials").values())
-        result: dict[str, float] = {
-            "myota_identity_users_total": float(len(accounts)),
-            "myota_identity_active_users_total": float(
-                sum(account.get("status") == "ACTIVE" for account in accounts)
-            ),
-            "myota_identity_operator_users_total": float(
-                sum(
-                    account.get("participationType") == "OPERATOR"
-                    for account in accounts
-                )
-            ),
-            "myota_identity_swl_users_total": float(
-                sum(
-                    account.get("participationType") == "SWL"
-                    for account in accounts
-                )
-            ),
-            "myota_identity_callsigns_total": float(len(callsigns)),
-            "myota_identity_verified_callsigns_total": float(
-                sum(call.get("status") == "VERIFIED" for call in callsigns)
-            ),
-            "myota_identity_roles_total": float(len(roles)),
-            "myota_identity_role_definitions_total": float(len(definitions)),
-            "myota_identity_security_events_total": float(
-                len(security_events)
-            ),
-            "myota_identity_locked_accounts_total": float(
-                sum(
-                    bool(credential.get("lockedUntil"))
-                    for credential in credentials
-                )
-            ),
-        }
-        for status in ("ACTIVE", "DEACTIVATED"):
-            result[
-                f'myota_identity_users_by_status_total{{status="{status}"}}'
-            ] = float(
-                sum(account.get("status") == status for account in accounts)
-            )
-        return result
 
     @staticmethod
     def _bucket(name: str) -> dict[str, Any]:

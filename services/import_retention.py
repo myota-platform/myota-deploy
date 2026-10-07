@@ -67,6 +67,7 @@ def source_object(metadata: Any, import_bucket: str) -> tuple[str, str] | None:
 
 def _purge_run(connection: Any, run_id: str, retention_days: int) -> bool:
     """Delete retained import logs and metadata, preserving domain entities."""
+    connection.execute("SET LOCAL myota.geodata_writer = 'row-v1'")
     eligible = connection.execute(
         f"SELECT id FROM import_run WHERE id = %s AND {ELIGIBLE_WHERE_SQL} FOR UPDATE",
         (run_id, retention_days, retention_days),
@@ -92,6 +93,9 @@ def _purge_run(connection: Any, run_id: str, retention_days: int) -> bool:
         connection.execute(
             "DELETE FROM outbox_event WHERE event_id = ANY(%s)", (event_ids,)
         )
+
+    # The snapshot manifest FK intentionally has no cascade: remove its
+    # import-owned audit data explicitly before deleting the import history.
     connection.execute(
         "DELETE FROM source_snapshot_manifest WHERE import_run_id = %s",
         (run_id,),
@@ -100,36 +104,21 @@ def _purge_run(connection: Any, run_id: str, retention_days: int) -> bool:
         f"DELETE FROM import_run WHERE id = %s AND {ELIGIBLE_WHERE_SQL}",
         (run_id, retention_days, retention_days),
     )
-    if cursor.rowcount != 1:
+    if (
+        cursor.rowcount != 1
+    ):  # defensive; the row is locked and was just verified
         raise RuntimeError("eligible import run disappeared during retention")
-    row = connection.execute(
-        "SELECT state FROM service_state WHERE service = 'geodata' FOR UPDATE"
-    ).fetchone()
-    if row:
-        state = (
-            row[0] if isinstance(row[0], dict) else json.loads(row[0] or "{}")
-        )
-        data = state.get("data") if isinstance(state.get("data"), dict) else {}
-        runs = (
-            data.get("importRuns")
-            if isinstance(data.get("importRuns"), dict)
-            else {}
-        )
-        runs.pop(run_id, None)
-        data["importRuns"] = runs
-        state["data"] = data
-        state["events"] = [
-            event
-            for event in state.get("events", [])
-            if not (
-                (event.get("aggregate") or {}).get("type") == "import_run"
-                and str((event.get("aggregate") or {}).get("id")) == run_id
-            )
-        ]
-        connection.execute(
-            "UPDATE service_state SET state = %s::jsonb, updated_at = now() WHERE service = 'geodata'",
-            (json.dumps(state),),
-        )
+
+    connection.execute(
+        "DELETE FROM geodata_audit_event WHERE aggregate_type='import_run' "
+        "AND aggregate_id=%s",
+        (run_id,),
+    )
+    connection.execute(
+        "DELETE FROM geodata_control_record WHERE kind='sourceManifests' "
+        "AND id=%s",
+        (run_id,),
+    )
     return True
 
 
@@ -141,8 +130,14 @@ def purge_expired_imports(
     retention_days: int | None = None,
     batch_size: int | None = None,
     excluded_run_ids: set[str] | None = None,
-) -> dict[str, Any]:
-    """Purge finalized or inactive import runs older than the retention window."""
+) -> dict[str, int]:
+    """Purge finalized or inactive import runs older than the retention window.
+
+    Source objects are deleted before database history. This makes retries safe:
+    S3 delete is idempotent, and a failed DB transaction leaves the import row
+    available for the next run. Finalized runs age from processed_at; queued,
+    preprocessed, failed, and stalled runs age from their latest activity.
+    """
     dsn = dsn if dsn is not None else os.environ.get("GEO_DATABASE_URL", "")
     if not dsn:
         raise RuntimeError("GEO_DATABASE_URL is required for import retention")
@@ -172,6 +167,10 @@ def purge_expired_imports(
         "failed": 0,
         "failedRunIds": [],
     }
+
+    # Read a bounded snapshot and close the transaction before touching object
+    # storage. A single CronJob/Compose worker is configured, but conditional
+    # deletes below also make overlapping runs safe.
     with connection_factory(dsn) as connection:
         query = (
             f"SELECT id::text, source_metadata FROM import_run WHERE {ELIGIBLE_WHERE_SQL} "
@@ -184,14 +183,16 @@ def purge_expired_imports(
         params += (batch_size,)
         rows = connection.execute(query, params).fetchall()
     counts["eligible"] = len(rows)
+
     for run_id, metadata in rows:
         try:
             object_ref = source_object(metadata, import_bucket)
             if object_ref:
                 object_store.delete(*object_ref)
             with connection_factory(dsn) as connection:
-                if _purge_run(connection, run_id, retention_days):
-                    counts["purged"] += 1
+                purged = _purge_run(connection, run_id, retention_days)
+            if purged:
+                counts["purged"] += 1
         except Exception:
             counts["failed"] += 1
             counts["failedRunIds"].append(run_id)
