@@ -335,7 +335,7 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $worker }}}
       annotations:
-        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.platform | default "untracked" | quote }}
+        rollout.myota.dev/image-digest: {{ $.Values.imageRollout.digests.platform | default "untracked" | quote }}
     spec:
       initContainers:
         {{ include "myota.waitForSchema" (dict "root" $ "databaseUrlKey" (printf "%s-database-url" $db)) | nindent 8 }}
