@@ -3,6 +3,12 @@ name: Build and publish deployment runtime images
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "deploy/helm/**"
+      - ".github/workflows/helm-render.yml"
+      - ".github/workflows/sync-image-digests.yml"
+      - "scripts/sync-image-digests.py"
+      - "**/*.md"
   workflow_dispatch:
 
 permissions:
