@@ -40,7 +40,8 @@ The admin UI also exposes **NATS / JetStream** at `/jetstream`. The new
 messages, retains samples for seven days in its own `myota_core` table, and
 serves permission-checked APIs through the gateway. Core migration 002 creates
 its table. Collector provisioning scrapes the service and alerts on service
-outages or stale successful samples. See the
+outages or stalled sample recording (a recorded failure is not a successful
+broker sample). See the
 [status-page guide](https://github.com/myota-platform/myota-docs/blob/main/docs/jetstream-admin-status.md).
 
 Geodata migration 016 enables database-authoritative row state and fences
@@ -127,8 +128,9 @@ python3 -m unittest discover -s tests -v
 docker-compose up -d --build
 ```
 
-Open <http://127.0.0.1:8080>. The Compose stack starts the four services on
-ports 8001–8004 and proxies the browser API calls. Activations and awards
+Open <http://127.0.0.1:8090> for administration or
+<http://127.0.0.1:8080> for the participant web/gateway. Domain APIs use
+ports 8001–8004; the read-only operations service uses 8005. Activations and awards
 intentionally share the activity service on port 8004; there is no standalone
 awards port. Use `python3 services/dev_server.py` only as the dependency-free
 unit-test harness; it is not a durable runtime unless database URLs and
@@ -145,8 +147,9 @@ directory page and can log harmless broken-pipe messages when a probe closes
 early. Activity and awards share port 8004, while
 `activity-worker`, `activity-notifications`, `activity-adif-retention`, and `geodata-import-processing`
 run asynchronously and can be scaled independently. The geodata processing
-worker consumes preprocessing and promotion subjects from durable JetStream
-pull consumers; promotion follows administrator confirmation. Browser uploads
+worker consumes preprocessing, promotion and confirmed permanent-deletion
+subjects with separate durable JetStream pull consumers; promotion and deletion
+follow explicit administrator authorization. Browser uploads
 use bounded resumable SeaweedFS multipart sessions and need no shared
 upload-spool PVC. The activity migration is applied by
 `db/migrations/run.sh`; core, activity and geodata migration ownership is
@@ -222,8 +225,15 @@ QSO cascade/award recalculation first, then geodata entity/audit cleanup.
 
 ## Architecture
 
-Read [`docs/architecture.md`](docs/architecture.md), [`docs/adr/0001-storage-topology.md`](docs/adr/0001-storage-topology.md), and [`docs/repository-map.md`](docs/repository-map.md). The current bootstrap is kept together to make the vertical slice easy to run; the repository map defines the justified GitHub split once the MyOTA organization is available.
+Read the authoritative [architecture](https://github.com/myota-platform/myota-docs/blob/main/docs/architecture.md),
+[storage topology ADR](https://github.com/myota-platform/myota-docs/blob/main/docs/adr/0001-storage-topology.md)
+and [repository map](https://github.com/myota-platform/myota-docs/blob/main/docs/repository-map.md).
+The [scaling delivery/evidence checklist](https://github.com/myota-platform/myota-docs/blob/main/docs/geodata-horizontal-scaling-roadmap.md#latest-delivery-and-evidence--7-october-2026)
+records migration 016, separate workers, operations integration and remaining
+failure/load gates. Keep replica counts unchanged until those gates pass;
+render/validate Helm through the GitHub chart workflow.
 
 ## Source project
 
-The original `ea7klk/mpota` repository remains untouched. Its charter and planned flows are treated as the migration source; see [`docs/migration-from-mpota.md`](docs/migration-from-mpota.md).
+The original `ea7klk/mpota` repository remains untouched; see the central
+[migration strategy](https://github.com/myota-platform/myota-docs/blob/main/docs/migration-from-mpota.md).
