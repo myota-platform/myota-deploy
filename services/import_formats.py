@@ -1,4 +1,9 @@
-"""Text and archive decoders for the geodata intake boundary."""
+"""Text and archive decoders for the geodata intake boundary.
+
+The decoder produces ordinary GeoJSON features.  It deliberately does not
+decide lifecycle status or programme eligibility; those decisions belong to
+the import service and the review workflow.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +13,7 @@ import zipfile
 from pathlib import PurePosixPath
 from typing import Any
 from xml.etree import ElementTree
+
 
 TEXT_FORMATS = {"GEOJSON", "KML", "GPX"}
 BINARY_FORMATS = {"SHAPEFILE", "SHP", "OSM_PBF", "PARKSERVE_US"}
@@ -21,7 +27,7 @@ def _feature(
     properties: dict[str, Any] | None = None,
     feature_id: Any = None,
 ) -> dict[str, Any]:
-    value = {
+    value: dict[str, Any] = {
         "type": "Feature",
         "geometry": geometry,
         "properties": properties or {},
@@ -37,20 +43,37 @@ def _geojson(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, dict):
         raise ValueError("GeoJSON document must be an object")
     kind = value.get("type")
+    document_crs = value.get("crs") or value.get("spatialReference")
+
+    def with_document_crs(
+        features: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        if not document_crs:
+            return features
+        result = []
+        for feature in features:
+            copied = dict(feature)
+            copied.setdefault("crs", document_crs)
+            result.append(copied)
+        return result
+
     if kind == "FeatureCollection":
-        if not isinstance(value.get("features"), list):
+        features = value.get("features")
+        if not isinstance(features, list):
             raise ValueError(
                 "GeoJSON FeatureCollection must contain a features array"
             )
-        return value["features"]
+        return with_document_crs(features)
     if kind == "Feature":
-        return [value]
+        return with_document_crs([value])
     if isinstance(value.get("geometry"), dict):
-        return [
-            _feature(
-                value["geometry"], value.get("properties"), value.get("id")
-            )
-        ]
+        return with_document_crs(
+            [
+                _feature(
+                    value["geometry"], value.get("properties"), value.get("id")
+                )
+            ]
+        )
     if kind in {
         "Point",
         "LineString",
@@ -58,7 +81,7 @@ def _geojson(value: Any) -> list[dict[str, Any]]:
         "Polygon",
         "MultiPolygon",
     }:
-        return [_feature(value)]
+        return with_document_crs([_feature(value)])
     raise ValueError("unsupported GeoJSON document type")
 
 
@@ -67,7 +90,7 @@ def _local_name(tag: str) -> str:
 
 
 def _kml_geometry(node: ElementTree.Element) -> dict[str, Any] | None:
-    points = []
+    points: list[list[float]] = []
     for child in node.iter():
         if (
             _local_name(child.tag) != "coordinates"
@@ -89,10 +112,11 @@ def _kml_geometry(node: ElementTree.Element) -> dict[str, Any] | None:
     if "MultiGeometry" in names:
         lines = []
         for line in node.iter():
-            if _local_name(line.tag) == "LineString":
-                geometry = _kml_geometry(line)
-                if geometry and geometry["type"] == "LineString":
-                    lines.append(geometry["coordinates"])
+            if _local_name(line.tag) != "LineString":
+                continue
+            geometry = _kml_geometry(line)
+            if geometry and geometry["type"] == "LineString":
+                lines.append(geometry["coordinates"])
         if lines:
             return {"type": "MultiLineString", "coordinates": lines}
     return {"type": "LineString", "coordinates": points}
@@ -115,9 +139,10 @@ def parse_kml(content: str) -> list[dict[str, Any]]:
             ),
             None,
         )
+        properties = {"name": name} if name else {}
         geometry = _kml_geometry(placemark)
         if geometry:
-            features.append(_feature(geometry, {"name": name} if name else {}))
+            features.append(_feature(geometry, properties))
     if not features:
         raise ValueError("KML contains no supported Placemark geometry")
     return features
@@ -136,12 +161,13 @@ def parse_gpx(content: str) -> list[dict[str, Any]]:
     for waypoint in root.iter():
         if _local_name(waypoint.tag) not in {"wpt", "rtept"}:
             continue
-        properties = {
-            _local_name(child.tag): child.text.strip()
-            for child in waypoint
-            if _local_name(child.tag) in {"name", "desc", "type"}
-            and child.text
-        }
+        properties = {}
+        for child in waypoint:
+            if (
+                _local_name(child.tag) in {"name", "desc", "type"}
+                and child.text
+            ):
+                properties[_local_name(child.tag)] = child.text.strip()
         features.append(
             _feature(
                 {"type": "Point", "coordinates": _gpx_point(waypoint)},
@@ -191,41 +217,64 @@ def parse_uploaded(
         return parse_text(code, content.decode("utf-8-sig"))
     if code in {"SHP", "SHAPEFILE"}:
         try:
-            import shapefile
+            import shapefile  # pyshp, optional in the lightweight service image
         except ImportError as exc:
             raise ValueError(
                 "Shapefile support requires the pyshp package"
             ) from exc
-        if not filename.lower().endswith(".zip"):
+        raw = content
+        if filename.lower().endswith(".zip"):
+            with zipfile.ZipFile(io.BytesIO(content)) as archive:
+                shp_name = next(
+                    (
+                        name
+                        for name in archive.namelist()
+                        if name.lower().endswith(".shp")
+                    ),
+                    None,
+                )
+                if not shp_name:
+                    raise ValueError(
+                        "shapefile archive does not contain a .shp member"
+                    )
+                raw = archive.read(shp_name)
+                # pyshp needs the sibling DBF/SHX streams as well; use an in-memory
+                # reader when all sidecars are present.
+                stem = str(PurePosixPath(shp_name).with_suffix(""))
+                reader = shapefile.Reader(
+                    shp=io.BytesIO(raw),
+                    shx=io.BytesIO(archive.read(stem + ".shx"))
+                    if stem + ".shx" in archive.namelist()
+                    else None,
+                    dbf=io.BytesIO(archive.read(stem + ".dbf"))
+                    if stem + ".dbf" in archive.namelist()
+                    else None,
+                )
+                projection_name = next(
+                    (
+                        name
+                        for name in archive.namelist()
+                        if str(PurePosixPath(name)).with_suffix("").casefold()
+                        == stem.casefold()
+                        and name.lower().endswith(".prj")
+                    ),
+                    None,
+                )
+                source_crs = (
+                    archive.read(projection_name).decode("utf-8", "replace")
+                    if projection_name
+                    else None
+                )
+        else:
             raise ValueError(
                 "upload a .zip containing the .shp, .shx, and .dbf sidecars"
             )
-        with zipfile.ZipFile(io.BytesIO(content)) as archive:
-            shp_name = next(
-                (
-                    name
-                    for name in archive.namelist()
-                    if name.lower().endswith(".shp")
-                ),
-                None,
-            )
-            if not shp_name:
-                raise ValueError(
-                    "shapefile archive does not contain a .shp member"
-                )
-            stem = str(PurePosixPath(shp_name).with_suffix(""))
-            reader = shapefile.Reader(
-                shp=io.BytesIO(archive.read(shp_name)),
-                shx=io.BytesIO(archive.read(stem + ".shx"))
-                if stem + ".shx" in archive.namelist()
-                else None,
-                dbf=io.BytesIO(archive.read(stem + ".dbf"))
-                if stem + ".dbf" in archive.namelist()
-                else None,
-            )
         fields = [field[0] for field in reader.fields[1:]]
         return [
-            _feature(shape.__geo_interface__, dict(zip(fields, record)))
+            {
+                **_feature(shape.__geo_interface__, dict(zip(fields, record))),
+                **({"crs": source_crs} if source_crs else {}),
+            }
             for shape, record in zip(reader.shapes(), reader.records())
         ]
     raise ValueError(

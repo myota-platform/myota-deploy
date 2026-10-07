@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from http.server import ThreadingHTTPServer
+from common import BoundedThreadingHTTPServer
 
 service = os.environ.get("SERVICE", "").lower()
 if service == "identity":
@@ -36,8 +37,6 @@ if service == "identity":
     bootstrap_admin()
 handler.store.persist()
 print(f"{service}-service listening on :{port}")
-from common import BoundedThreadingHTTPServer
-
 server_class = (
     BoundedThreadingHTTPServer
     if service == "activity"
