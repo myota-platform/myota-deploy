@@ -12,6 +12,14 @@ This repository owns Compose, Fleet/Helm, migration orchestration and
 observability provisioning. Domain implementations remain in their service
 repositories; `services/` contains synchronized integration copies.
 
+Activity notifications use the durable JetStream pull consumer
+`activity-notifications-pull-v1`; Helm gives its SIGTERM/drain path 60 seconds.
+Geodata cancellation persists lifecycle fields through the row repository and
+locks finalization through candidate cleanup. These fixes are mirrored in
+`services/` for integrated deployments. See the
+[operations runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#activity-notification-consumer-rollouts)
+for the legacy push-consumer handoff and cancellation guarantees.
+
 ## What works now
 
 - Amateur-radio-aware identity: operator/SWL participation, multiple callsigns, one primary callsign, lifecycle and verification fields.
