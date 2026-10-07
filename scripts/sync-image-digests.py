@@ -28,7 +28,9 @@ def main() -> None:
             ["crane", "digest", image], text=True, stderr=subprocess.STDOUT
         ).strip()
         if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
-            raise SystemExit(f"Unexpected digest returned for {image}: {digest!r}")
+            raise SystemExit(
+                f"Unexpected digest returned for {image}: {digest!r}"
+            )
         pattern = re.compile(rf"(?m)^(    {re.escape(key)}:\s*)\"[^\"]*\"$")
         contents, count = pattern.subn(rf'\g<1>"{digest}"', contents)
         if count != 1:

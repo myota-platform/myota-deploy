@@ -7,18 +7,25 @@ from http.server import ThreadingHTTPServer
 service = os.environ.get("SERVICE", "").lower()
 if service == "identity":
     from identity import IdentityHandler, bootstrap_admin, seed as seed_service
+
     port, handler, seed = 8001, IdentityHandler, seed_service
 elif service == "programmes":
     from programmes import ProgrammeHandler, seed as seed_service
+
     port, handler, seed = 8002, ProgrammeHandler, seed_service
 elif service == "geodata":
     from geodata import GeoHandler
+
     port, handler, seed = 8003, GeoHandler, GeoHandler.store.hydrate
 elif service == "activity":
     from activity import ActivityHandler
+
     port, handler, seed = 8004, ActivityHandler, lambda: None
 else:
-    print("SERVICE must be one of: identity, programmes, geodata, activity", file=sys.stderr)
+    print(
+        "SERVICE must be one of: identity, programmes, geodata, activity",
+        file=sys.stderr,
+    )
     raise SystemExit(2)
 seed()
 if service == "geodata":
@@ -30,7 +37,12 @@ if service == "identity":
 handler.store.persist()
 print(f"{service}-service listening on :{port}")
 from common import BoundedThreadingHTTPServer
-server_class = BoundedThreadingHTTPServer if service == "activity" else ThreadingHTTPServer
+
+server_class = (
+    BoundedThreadingHTTPServer
+    if service == "activity"
+    else ThreadingHTTPServer
+)
 server = server_class(("0.0.0.0", port), handler)
 try:
     server.serve_forever()

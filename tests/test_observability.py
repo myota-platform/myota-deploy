@@ -21,13 +21,50 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertIn("endpoint: 0.0.0.0:8889", config)
 
     def test_dashboard_is_real_data_only(self):
-        dashboard = json.loads((ROOT / "observability" / "grafana" / "dashboards" / "myota-operations.json").read_text())
-        expressions = [target.get("expr", "") for panel in dashboard["panels"] for target in panel.get("targets", [])]
-        self.assertTrue(any("myota_identity_users_total" in expression for expression in expressions))
-        self.assertTrue(any("myota_geodata_entities_total" in expression for expression in expressions))
-        self.assertTrue(any("myota_activity_qsos_total" in expression for expression in expressions))
-        self.assertTrue(any("myota_http_server_requests_total" in expression for expression in expressions))
-        self.assertFalse(any("vector(1)" in expression or "count(up)" in expression for expression in expressions))
+        dashboard = json.loads(
+            (
+                ROOT
+                / "observability"
+                / "grafana"
+                / "dashboards"
+                / "myota-operations.json"
+            ).read_text()
+        )
+        expressions = [
+            target.get("expr", "")
+            for panel in dashboard["panels"]
+            for target in panel.get("targets", [])
+        ]
+        self.assertTrue(
+            any(
+                "myota_identity_users_total" in expression
+                for expression in expressions
+            )
+        )
+        self.assertTrue(
+            any(
+                "myota_geodata_entities_total" in expression
+                for expression in expressions
+            )
+        )
+        self.assertTrue(
+            any(
+                "myota_activity_qsos_total" in expression
+                for expression in expressions
+            )
+        )
+        self.assertTrue(
+            any(
+                "myota_http_server_requests_total" in expression
+                for expression in expressions
+            )
+        )
+        self.assertFalse(
+            any(
+                "vector(1)" in expression or "count(up)" in expression
+                for expression in expressions
+            )
+        )
 
 
 if __name__ == "__main__":
