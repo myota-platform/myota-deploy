@@ -7,7 +7,10 @@ spec:
   replicas: {{ default 1 $cfg.replicas }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $name }}}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $name }}}}
+    metadata:
+      labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $name }}}
+      annotations:
+        rollout.myota.dev/image-digest: {{ index $.Values.imageRollout.digests $name | default "untracked" | quote }}
     spec:
       initContainers:
         {{- if eq $name "activity" }}
@@ -123,6 +126,8 @@ spec:
             {{- end }}
             {{- end }}
             {{- if eq $name "identity" }}
+            - name: MYOTA_ACCESS_TOKEN_SECONDS
+              value: {{ $.Values.auth.accessTokenSeconds | default 1800 | quote }}
             - name: MYOTA_BOOTSTRAP_ADMIN_EMAIL
               valueFrom:
                 secretKeyRef:
@@ -163,7 +168,10 @@ spec:
   replicas: {{ .Values.activityWorkers.replicas }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-worker}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-worker}}
+    metadata:
+      labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-worker}
+      annotations:
+        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.activity | default "untracked" | quote }}
     spec:
       initContainers:
         {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "activity-database-url") | nindent 8 }}
@@ -204,7 +212,10 @@ spec:
   replicas: {{ .Values.activityNotifications.replicas }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-notifications}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-notifications}}
+    metadata:
+      labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: activity-notifications}
+      annotations:
+        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.activity | default "untracked" | quote }}
     spec:
       initContainers:
         {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "activity-database-url") | nindent 8 }}
@@ -248,7 +259,10 @@ spec:
   replicas: {{ .Values.geodataImportProcessing.replicas }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}}
+    metadata:
+      labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: geodata-import-processing}
+      annotations:
+        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.platform | default "untracked" | quote }}
     spec:
       initContainers:
         {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "geo-database-url") | nindent 8 }}
@@ -276,7 +290,10 @@ spec:
   replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: gateway}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: gateway}}
+    metadata:
+      labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: gateway}
+      annotations:
+        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.gateway | default "untracked" | quote }}
     spec:
       containers:
         - name: gateway
@@ -315,7 +332,10 @@ spec:
   replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $worker }}}}
   template:
-    metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $worker }}}}
+    metadata:
+      labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $worker }}}
+      annotations:
+        rollout.myota.dev/image-digest: {{ .Values.imageRollout.digests.platform | default "untracked" | quote }}
     spec:
       initContainers:
         {{ include "myota.waitForSchema" (dict "root" $ "databaseUrlKey" (printf "%s-database-url" $db)) | nindent 8 }}

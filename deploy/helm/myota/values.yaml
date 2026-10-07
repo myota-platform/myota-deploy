@@ -2,6 +2,17 @@ image:
   repository: ghcr.io/myota-platform/myota-service
   tag: latest
   pullPolicy: IfNotPresent
+imageRollout:
+  # Updated by the image-digest-sync workflow; changing a digest annotation
+  # changes each Deployment's pod template and triggers a rolling restart.
+  digests:
+    identity: ""
+    programmes: ""
+    geodata: ""
+    activity: ""
+    gateway: ""
+    adminWeb: ""
+    platform: ""
 gateway:
   imageRepository: ghcr.io/myota-platform/myota-gateway
   imageTag: ""
@@ -148,6 +159,7 @@ auth:
   environment: production
   existingSecret: myota-auth
   maintenanceEnabled: true
+  accessTokenSeconds: 1800
 nats:
   image: nats:2.10-alpine
   url: nats://myota-nats:4222

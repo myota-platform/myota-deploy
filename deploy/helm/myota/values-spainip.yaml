@@ -69,6 +69,7 @@ auth:
   environment: production
   existingSecret: myota-auth
   maintenanceEnabled: true
+  accessTokenSeconds: 1800
 
 observability:
   enabled: true
