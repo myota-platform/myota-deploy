@@ -2,11 +2,11 @@
 # Digest annotations trigger a Kubernetes rolling update when :latest changes.
 imageRollout:
   digests:
-    operations: "sha256:f0ad59cfc95fa57e7b67294aded935502d653bb6f3867f306f4dd04f016bdfcb"
+    operations: "sha256:2ec93c933f7e707ef6cc580cafbaaa97f89ab9dde896d141b0aecd107476da8d"
     identity: "sha256:b831d2f7399a2c887fb04066784d01337cadf3856ce2684de88b0c4eeadcba49"
     programmes: "sha256:e14568463b9bd573f0974786e9edfd0f44e55eea6ebab528079a65aa3205f3a1"
     geodata: "sha256:4547e6f39091b7027c42758ad3e164e582f287f133faf3bf0a5758b18cc56775"
     activity: "sha256:d98b523a09c9cdfcf0ee68afc53b601be5ec92c7ef2dd6194b75637cfed4d993"
-    gateway: "sha256:63e0a5e4c460644cbb6a8ee380daed9b123fd1afa19661233670bda94fb06f22"
-    adminWeb: "sha256:d9935e5d0dd9e53e5bcbb0b7c469cb4aed81ce4e22f93a556ad6c0ad1fca292a"
-    platform: "sha256:493363b21a34384c17fa2b25de5b14d980e88486693c1cb5c8fa5193e2460253"
+    gateway: "sha256:5a75c9d2653f913664fc0cfb266039289a6787822d7386dbe219c9e315825d07"
+    adminWeb: "sha256:ffd55a0dab99960ec8ebf1b77e2355923160812d1facd9bddebabfd31764949a"
+    platform: "sha256:66103ea3d0b84e38f3d52a777a085950355f663422cdb9af1b3292a17381e5b8"
