@@ -106,6 +106,9 @@ master and S3 request metrics. The **MyOTA Object Storage** dashboard shows S3
 request rate, server-side p50/p95/p99 processing time, non-2xx responses, and
 in-flight uploads. The port is configurable under `seaweedfs.metricsPort`; do
 not expose it through an Ingress or public Service.
+The Collector pod template includes a checksum of its scrape configuration,
+so Fleet changes to the ConfigMap automatically roll the Collector and activate
+new scrape targets.
 
 The migration runner is a normal release Job, not a `post-install` hook. Helm
 waits for Deployments before running post-install hooks, while these services
