@@ -64,6 +64,8 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: {{ include "myota.name" . }}, app.kubernetes.io/component: otel-collector}
+      annotations:
+        checksum/config: {{ tpl (.Files.Get "observability/otel-collector.yaml") . | sha256sum | quote }}
     spec:
       containers:
         - name: otel-collector
