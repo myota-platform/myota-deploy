@@ -235,6 +235,7 @@ spec:
             - {name: GF_AUTH_PROXY_HEADER_PROPERTY, value: username}
             - {name: GF_AUTH_PROXY_AUTO_SIGN_UP, value: "true"}
             - {name: GF_AUTH_PROXY_ENABLE_LOGIN_TOKEN, value: "false"}
+            - {name: GF_AUTH_PROXY_SYNC_TTL, value: "0"}
             - {name: GF_AUTH_PROXY_HEADERS, value: "Name:X-WEBAUTH-NAME Email:X-WEBAUTH-EMAIL Role:X-WEBAUTH-ROLE"}
             - {name: GF_USERS_AUTO_ASSIGN_ORG_ROLE, value: Viewer}
           ports: [{name: http, containerPort: 3000}]

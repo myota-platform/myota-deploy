@@ -45,6 +45,12 @@ spec:
             - name: MYOTA_ENV
               value: {{ $.Values.auth.environment | quote }}
             {{- if eq $name "operations" }}
+            - name: MYOTA_IDENTITY_URL
+              value: {{ $.Values.services.identity.internalUrl | quote }}
+            - name: OPERATIONS_STORAGE_HEALTH_URL
+              value: {{ $cfg.storageHealthUrl | default (printf "%s/status" $.Values.objectStorage.endpoint) | quote }}
+            - name: OPERATIONS_STORAGE_METRICS_URL
+              value: {{ $cfg.storageMetricsUrl | default (printf "http://myota-seaweedfs:%v/metrics" $.Values.seaweedfs.metricsPort) | quote }}
             - name: NATS_URL
               value: {{ $.Values.nats.url | default "nats://myota-nats:4222" | quote }}
             - name: OPERATIONS_POLL_SECONDS

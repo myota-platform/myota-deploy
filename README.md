@@ -55,6 +55,21 @@ container is required. Compose and Helm pass the configured optional
 
 ## Observability and Phase 4 operations
 
+**SeaweedFS storage** (`/object-storage`) follows the NATS status-page pattern:
+operations-owned samples/history, authenticated API access, read-only storage
+health and native exporter gauges. Core migration 003 creates its history table.
+Compose and Helm provide the health/metrics URLs and the live Identity API URL.
+Helm overrides are `services.operations.storageHealthUrl`,
+`services.operations.storageMetricsUrl` and `services.identity.internalUrl`.
+
+Grafana now uses individual MyOTA identities. GLOBAL_OPERATOR/GLOBAL_ADMIN
+receive Editor access for dashboards/panels; other authorized readers receive
+Viewer access. The auth proxy synchronizes roles on every request. Provisioned
+dashboards are editable and allow UI saves, default to `now-30m` through `now`,
+and refresh every 30 seconds. UI-created dashboards persist on Grafana's PVC;
+source provisioning overwrites UI edits to provisioned dashboards on update.
+See the [storage/admin access guide](https://github.com/myota-platform/myota-docs/blob/main/docs/seaweedfs-admin-status.md).
+
 The admin UI also exposes **NATS / JetStream** at `/jetstream`. The new
 `myota-operations-service` observes broker metadata without consuming business
 messages, retains samples for seven days in its own `myota_core` table, and

@@ -1,5 +1,15 @@
 # Deploy MyOTA with Rancher Fleet on K3s
 
+The Admin UI includes **Platform health → SeaweedFS storage** at
+`/object-storage`, backed by the operations service. Health/metrics endpoints
+can be overridden with `services.operations.storageHealthUrl` and
+`services.operations.storageMetricsUrl`; empty values use the chart's private
+SeaweedFS service. `services.identity.internalUrl` supplies live session/role
+checks. Core migration 003 adds sampled storage history; no new Secret is needed.
+Grafana maps current GLOBAL_OPERATOR/GLOBAL_ADMIN users to Editor and other
+authorized readers to Viewer. Provisioned dashboards default to the last
+30 minutes with 30-second refresh; see the [storage access runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/seaweedfs-admin-status.md).
+
 This chart targets the cluster managed by Rancher at `https://rancher.spainip.es`
 and uses the cluster's Traefik ingress controller. Configure the public/API
 hostname with `ingress.host` and the separate administration UI hostname with
