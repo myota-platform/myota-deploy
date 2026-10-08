@@ -245,6 +245,7 @@ services:
       MYOTA_ACTIVITY_URL: http://activity:8004
       MYOTA_OPERATIONS_URL: http://operations:8005
       MYOTA_PROXY_UPLOAD_TIMEOUT_SECONDS: "3600"
+      MYOTA_ENV: ${MYOTA_ENV:-development}
       MYOTA_OTEL_ENABLED: "1"
       OTEL_SERVICE_NAME: myota-gateway
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
@@ -272,12 +273,12 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:latest@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882
     restart: unless-stopped
-    command: ["mini", "-dir=/data", "-ip.bind=0.0.0.0"]
+    command: ["mini", "-dir=/data", "-ip.bind=0.0.0.0", "-metricsPort=9324", "-s3.metricsPort=9327"]
     environment:
       AWS_ACCESS_KEY_ID: myota-s3
       AWS_SECRET_ACCESS_KEY: myota-s3-dev-only
     volumes: ["seaweedfs-data:/data"]
-    ports: ["8333:8333", "8888:8888"]
+    ports: ["8333:8333", "8888:8888", "9324:9324", "9327:9327"]
     healthcheck:
       # Probe the S3 status endpoint. Probing the filer HTML root with
       # wget --spider makes the template writer log a broken pipe because the

@@ -118,6 +118,8 @@ seaweedfs:
   image: chrislusf/seaweedfs:latest
   storageSize: 20Gi
   storageClassName: ""
+  metricsPort: 9324
+  s3MetricsPort: 9327
 geodataPipeline:
   enabled: true
   locationEnrichment:

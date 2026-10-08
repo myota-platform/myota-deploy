@@ -12,6 +12,14 @@ receivers:
           scrape_interval: 15s
           static_configs:
             - targets: [gateway:8080, identity:8001, programmes:8002, geodata:8003, activity:8004, operations:8005]
+        - job_name: seaweedfs-master
+          scrape_interval: 15s
+          static_configs:
+            - targets: [seaweedfs:9324]
+        - job_name: seaweedfs-s3
+          scrape_interval: 15s
+          static_configs:
+            - targets: [seaweedfs:9327]
 processors:
   memory_limiter:
     check_interval: 1s

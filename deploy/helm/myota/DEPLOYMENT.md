@@ -96,6 +96,17 @@ available through Grafana's Alertmanager data source, but no email or paging
 destination is enabled by default. Configure an approved Alertmanager receiver
 before expecting external notifications.
 
+The gateway receives the same `MYOTA_ENV` value as the domain services so its
+OpenTelemetry resource is correctly labelled. Gateway API route metrics use
+the route templates registered by the service (for example,
+`/v1/geodata/entities/{entityId}`), not raw URL paths containing entity or
+import UUIDs. The Collector scrapes SeaweedFS's built-in master and S3 metrics
+listeners on the internal-only ports 9324 and 9327 by default. The
+**MyOTA Object Storage** dashboard shows S3 request rate, server-side p50/p95/
+p99 processing time, non-2xx responses, and in-flight uploads. Both ports are
+configurable under `seaweedfs.metricsPort` and `seaweedfs.s3MetricsPort`; do not
+expose them through an Ingress or public Service.
+
 The migration runner is a normal release Job, not a `post-install` hook. Helm
 waits for Deployments before running post-install hooks, while these services
 need their tables before they can become ready; using that hook ordering can

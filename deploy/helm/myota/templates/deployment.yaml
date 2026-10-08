@@ -315,6 +315,8 @@ spec:
           image: "{{ .Values.gateway.imageRepository }}:{{ default .Values.image.tag .Values.gateway.imageTag }}"
           command: ["python3", "services/dev_server.py"]
           env:
+            - name: MYOTA_ENV
+              value: {{ .Values.auth.environment | quote }}
             - name: MYOTA_IDENTITY_URL
               value: http://myota-identity:8001
             - name: MYOTA_PROGRAMMES_URL

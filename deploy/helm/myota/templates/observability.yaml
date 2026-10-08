@@ -23,7 +23,7 @@ metadata:
   name: {{ include "myota.fullname" (dict "name" "observability") }}
 data:
   otel-collector.yaml: |
-{{ .Files.Get "observability/otel-collector.yaml" | indent 4 }}
+{{ tpl (.Files.Get "observability/otel-collector.yaml") . | indent 4 }}
   tempo.yaml: |
 {{ .Files.Get "observability/tempo.yaml" | indent 4 }}
   prometheus.yml: |
@@ -44,6 +44,8 @@ data:
 {{ .Files.Get "observability/grafana/dashboards/myota-geodata-capacity.json" | indent 4 }}
   myota-jetstream-backlog.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-jetstream-backlog.json" | indent 4 }}
+  myota-object-storage.json: |
+{{ .Files.Get "observability/grafana/dashboards/myota-object-storage.json" | indent 4 }}
   alert-rules.yml: |
 {{ .Files.Get "observability/grafana/provisioning/alerting/alert-rules.yml" | indent 4 }}
   contact-points.yml: |
@@ -241,6 +243,7 @@ spec:
             - {name: config, mountPath: /etc/grafana/dashboards/myota-api-performance.json, subPath: myota-api-performance.json}
             - {name: config, mountPath: /etc/grafana/dashboards/myota-geodata-capacity.json, subPath: myota-geodata-capacity.json}
             - {name: config, mountPath: /etc/grafana/dashboards/myota-jetstream-backlog.json, subPath: myota-jetstream-backlog.json}
+            - {name: config, mountPath: /etc/grafana/dashboards/myota-object-storage.json, subPath: myota-object-storage.json}
             - {name: data, mountPath: /var/lib/grafana}
       volumes:
         - name: config
