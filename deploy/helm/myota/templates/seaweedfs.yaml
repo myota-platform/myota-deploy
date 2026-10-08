@@ -37,7 +37,6 @@ spec:
             - -dir=/data
             - -ip.bind=0.0.0.0
             - -metricsPort={{ .Values.seaweedfs.metricsPort }}
-            - -s3.metricsPort={{ .Values.seaweedfs.s3MetricsPort }}
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
@@ -53,7 +52,6 @@ spec:
             - {name: s3, containerPort: 8333}
             - {name: filer, containerPort: 8888}
             - {name: metrics, containerPort: {{ .Values.seaweedfs.metricsPort }}}
-            - {name: s3-metrics, containerPort: {{ .Values.seaweedfs.s3MetricsPort }}}
           # The S3 status endpoint is a small, body-less health response. The
           # filer root is an HTML directory page and is not suitable for a
           # probe because clients may disconnect while the template renders.
@@ -73,5 +71,4 @@ spec:
     - {name: s3, port: 8333, targetPort: s3}
     - {name: filer, port: 8888, targetPort: filer}
     - {name: metrics, port: {{ .Values.seaweedfs.metricsPort }}, targetPort: metrics}
-    - {name: s3-metrics, port: {{ .Values.seaweedfs.s3MetricsPort }}, targetPort: s3-metrics}
 {{- end }}

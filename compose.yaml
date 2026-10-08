@@ -273,12 +273,12 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:latest@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882
     restart: unless-stopped
-    command: ["mini", "-dir=/data", "-ip.bind=0.0.0.0", "-metricsPort=9324", "-s3.metricsPort=9327"]
+    command: ["mini", "-dir=/data", "-ip.bind=0.0.0.0", "-metricsPort=9324"]
     environment:
       AWS_ACCESS_KEY_ID: myota-s3
       AWS_SECRET_ACCESS_KEY: myota-s3-dev-only
     volumes: ["seaweedfs-data:/data"]
-    ports: ["8333:8333", "8888:8888", "9324:9324", "9327:9327"]
+    ports: ["8333:8333", "8888:8888", "9324:9324"]
     healthcheck:
       # Probe the S3 status endpoint. Probing the filer HTML root with
       # wget --spider makes the template writer log a broken pipe because the

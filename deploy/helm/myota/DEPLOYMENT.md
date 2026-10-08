@@ -101,11 +101,11 @@ OpenTelemetry resource is correctly labelled. Gateway API route metrics use
 the route templates registered by the service (for example,
 `/v1/geodata/entities/{entityId}`), not raw URL paths containing entity or
 import UUIDs. The Collector scrapes SeaweedFS's built-in master and S3 metrics
-listeners on the internal-only ports 9324 and 9327 by default. The
-**MyOTA Object Storage** dashboard shows S3 request rate, server-side p50/p95/
-p99 processing time, non-2xx responses, and in-flight uploads. Both ports are
-configurable under `seaweedfs.metricsPort` and `seaweedfs.s3MetricsPort`; do not
-expose them through an Ingress or public Service.
+listener on the internal-only port 9324 by default. That endpoint exposes both
+master and S3 request metrics. The **MyOTA Object Storage** dashboard shows S3
+request rate, server-side p50/p95/p99 processing time, non-2xx responses, and
+in-flight uploads. The port is configurable under `seaweedfs.metricsPort`; do
+not expose it through an Ingress or public Service.
 
 The migration runner is a normal release Job, not a `post-install` hook. Helm
 waits for Deployments before running post-install hooks, while these services

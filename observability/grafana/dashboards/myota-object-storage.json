@@ -10,7 +10,7 @@
       "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "id": 1,
-      "targets": [{"expr": "sum by (type, bucket) (rate(SeaweedFS_s3_request_total{job=\"myota-otel-collector\",exported_job=\"seaweedfs-s3\"}[5m]))", "legendFormat": "{{type}} · {{bucket}}", "refId": "A"}],
+      "targets": [{"expr": "sum by (type, bucket) (rate(SeaweedFS_s3_request_total{job=\"myota-otel-collector\",exported_job=\"seaweedfs\"}[5m]))", "legendFormat": "{{type}} · {{bucket}}", "refId": "A"}],
       "title": "S3 request rate by operation and bucket",
       "type": "timeseries"
     },
@@ -20,9 +20,9 @@
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "id": 2,
       "targets": [
-        {"expr": "histogram_quantile(0.50, sum by (le, type) (rate(SeaweedFS_s3_request_seconds_bucket{job=\"myota-otel-collector\",exported_job=\"seaweedfs-s3\"}[5m])))", "legendFormat": "p50 · {{type}}", "refId": "A"},
-        {"expr": "histogram_quantile(0.95, sum by (le, type) (rate(SeaweedFS_s3_request_seconds_bucket{job=\"myota-otel-collector\",exported_job=\"seaweedfs-s3\"}[5m])))", "legendFormat": "p95 · {{type}}", "refId": "B"},
-        {"expr": "histogram_quantile(0.99, sum by (le, type) (rate(SeaweedFS_s3_request_seconds_bucket{job=\"myota-otel-collector\",exported_job=\"seaweedfs-s3\"}[5m])))", "legendFormat": "p99 · {{type}}", "refId": "C"}
+        {"expr": "histogram_quantile(0.50, sum by (le, type) (rate(SeaweedFS_s3_request_seconds_bucket{job=\"myota-otel-collector\",exported_job=\"seaweedfs\"}[5m])))", "legendFormat": "p50 · {{type}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum by (le, type) (rate(SeaweedFS_s3_request_seconds_bucket{job=\"myota-otel-collector\",exported_job=\"seaweedfs\"}[5m])))", "legendFormat": "p95 · {{type}}", "refId": "B"},
+        {"expr": "histogram_quantile(0.99, sum by (le, type) (rate(SeaweedFS_s3_request_seconds_bucket{job=\"myota-otel-collector\",exported_job=\"seaweedfs\"}[5m])))", "legendFormat": "p99 · {{type}}", "refId": "C"}
       ],
       "title": "SeaweedFS S3 request processing latency",
       "type": "timeseries"
@@ -32,7 +32,7 @@
       "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "id": 3,
-      "targets": [{"expr": "sum by (type, code, bucket) (rate(SeaweedFS_s3_request_total{job=\"myota-otel-collector\",exported_job=\"seaweedfs-s3\",code!~\"2..\"}[5m]))", "legendFormat": "{{type}} · HTTP {{code}} · {{bucket}}", "refId": "A"}],
+      "targets": [{"expr": "sum by (type, code, bucket) (rate(SeaweedFS_s3_request_total{job=\"myota-otel-collector\",exported_job=\"seaweedfs\",code!~\"2..\"}[5m]))", "legendFormat": "{{type}} · HTTP {{code}} · {{bucket}}", "refId": "A"}],
       "title": "S3 non-2xx response rate",
       "type": "timeseries"
     },
@@ -41,7 +41,7 @@
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "id": 4,
-      "targets": [{"expr": "SeaweedFS_s3_in_flight_upload_count{job=\"myota-otel-collector\",exported_job=\"seaweedfs-s3\"}", "legendFormat": "in-flight uploads", "refId": "A"}],
+      "targets": [{"expr": "SeaweedFS_s3_in_flight_upload_count{job=\"myota-otel-collector\",exported_job=\"seaweedfs\"}", "legendFormat": "in-flight uploads", "refId": "A"}],
       "title": "Active S3 uploads",
       "type": "timeseries"
     },
@@ -50,7 +50,7 @@
       "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []},
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
       "id": 5,
-      "targets": [{"expr": "SeaweedFS_s3_in_flight_upload_bytes{job=\"myota-otel-collector\",exported_job=\"seaweedfs-s3\"}", "legendFormat": "in-flight upload bytes", "refId": "A"}],
+      "targets": [{"expr": "SeaweedFS_s3_in_flight_upload_bytes{job=\"myota-otel-collector\",exported_job=\"seaweedfs\"}", "legendFormat": "in-flight upload bytes", "refId": "A"}],
       "title": "Bytes currently being uploaded",
       "type": "timeseries"
     }
