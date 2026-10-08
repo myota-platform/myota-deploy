@@ -20,6 +20,14 @@ locks finalization through candidate cleanup. These fixes are mirrored in
 [operations runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#activity-notification-consumer-rollouts)
 for the legacy push-consumer handoff and cancellation guarantees.
 
+The geodata worker also consumes `myota.geodata.entity.location-enrichment.v1`
+through durable consumer `geodata-location-enrichment-v1`. It performs
+reverse-geocoding outside the API transaction and applies a result only when
+the entity still has the geometry/request version used for the lookup. The
+consumer ships in the geodata service image; no extra Deployment or database
+container is required. Compose and Helm pass the configured optional
+`BIGDATACLOUD_API_KEY` and language to both the API and worker.
+
 ## What works now
 
 - Amateur-radio-aware identity: operator/SWL participation, multiple callsigns, one primary callsign, lifecycle and verification fields.
