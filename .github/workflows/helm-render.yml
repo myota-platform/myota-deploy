@@ -68,6 +68,8 @@ jobs:
           grep -q 'GF_AUTH_ANONYMOUS_ENABLED, value: "false"' /tmp/myota-spainip-rendered.yaml
           grep -q 'GF_AUTH_PROXY_ENABLED, value: "true"' /tmp/myota-spainip-rendered.yaml
           grep -q 'MYOTA_GRAFANA_UPSTREAM' /tmp/myota-spainip-rendered.yaml
+          test "$(grep -c 'name: BIGDATACLOUD_API_KEY' /tmp/myota-spainip-rendered.yaml)" -eq 2
+          test "$(grep -c 'name: BIGDATACLOUD_LOCALITY_LANGUAGE' /tmp/myota-spainip-rendered.yaml)" -eq 2
           if grep -q 'helm.sh/hook:' /tmp/myota-spainip-rendered.yaml; then
             echo 'Migrations must run as a normal Job, not a Helm hook.' >&2
             exit 1
