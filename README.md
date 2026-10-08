@@ -14,6 +14,10 @@ repositories; `services/` contains synchronized integration copies.
 
 Activity notifications use the durable JetStream pull consumer
 `activity-notifications-pull-v1`; Helm gives its SIGTERM/drain path 60 seconds.
+The shared `MYOTA_EVENTS` stream uses Interest retention: the outbox relay
+provisions all five durable consumer filters before publishing, and JetStream
+removes a message after every matching consumer acknowledges it. The 30-day
+maximum age remains a backlog safety bound; the stream is not a replay archive.
 Geodata cancellation persists lifecycle fields through the row repository and
 locks finalization through candidate cleanup. These fixes are mirrored in
 `services/` for integrated deployments. See the
