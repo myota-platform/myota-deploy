@@ -57,6 +57,14 @@ secret manager); the listed keys are exact:
 | `myota-s3-auth` | `access-key`, `secret-key` | SeaweedFS and application S3-compatible access. The included Spainip values run single-node SeaweedFS with persistent storage; for an external S3/SeaweedFS service, disable `seaweedfs.enabled` and set `objectStorage.endpoint` and `objectStorage.publicEndpoint` as appropriate. |
 | `myota-geodata-enrichment` | `api-key` (optional) | BigDataCloud reverse-geocoding enrichment. Add the key only in Rancher/secret manager; without it, manually managed geodata remains usable but automatic enrichment is unavailable. |
 
+The geodata API and processing worker receive `BIGDATACLOUD_API_KEY` from that
+Secret at pod startup. After creating or rotating it, increment
+`geodataPipeline.locationEnrichment.rolloutRevision` in
+`values-spainip.yaml` and push the change. Fleet then rolls both pods through
+Helm; the key itself must never be placed in values or Git. Previous enrichment
+requests that were already acknowledged as failed need a fresh request from
+Entity Management after the rollout.
+
 All three PostgreSQL databases, JetStream, and the example SeaweedFS deployment
 use persistent volume claims. Uploads use resumable SeaweedFS multipart
 sessions; the geodata API has no shared upload-spool volume. The databases and SeaweedFS

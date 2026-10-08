@@ -60,6 +60,7 @@ jobs:
           grep -q 'name: MYOTA_ACCESS_TOKEN_SECONDS' /tmp/myota-spainip-rendered.yaml
           grep -q 'value: "1800"' /tmp/myota-spainip-rendered.yaml
           grep -q 'rollout.myota.dev/image-digest' /tmp/myota-spainip-rendered.yaml
+          test "$(grep -c 'rollout.myota.dev/location-enrichment-revision' /tmp/myota-spainip-rendered.yaml)" -eq 2
           grep -q 'name: wait-for-schema' /tmp/myota-spainip-rendered.yaml
           grep -q 'kind: IngressRoute' /tmp/myota-spainip-rendered.yaml
           grep -q 'maxSurge: 0' /tmp/myota-spainip-rendered.yaml

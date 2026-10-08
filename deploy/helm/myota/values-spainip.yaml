@@ -3,6 +3,10 @@ image:
   tag: latest
   pullPolicy: Always
 
+geodataPipeline:
+  locationEnrichment:
+    rolloutRevision: "2026-10-08-secret-configured"
+
 geodataLoadTestCleanup:
   enabled: true
   allowProductionCleanup: true

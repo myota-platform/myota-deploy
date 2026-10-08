@@ -127,6 +127,9 @@ geodataPipeline:
     existingSecret: myota-geodata-enrichment
     apiKeyKey: api-key
     language: en
+    # Increment after creating or rotating the external Secret so Fleet rolls
+    # both geodata pods and reloads the environment variable.
+    rolloutRevision: "1"
   maxImportFeatures: 5000
   maxCoordinates: 50000
   maxBodyBytes: "1073741824"
