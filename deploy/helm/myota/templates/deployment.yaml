@@ -294,6 +294,8 @@ spec:
               value: "120"
             - name: GEODATA_WORKER_MAX_ACK_PENDING
               value: {{ .Values.geodataImportProcessing.maxAckPending | quote }}
+            - name: GEODATA_DELETION_RECONCILE_SECONDS
+              value: {{ .Values.geodataImportProcessing.deletionReconcileSeconds | quote }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
 {{- end }}
 ---

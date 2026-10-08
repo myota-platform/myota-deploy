@@ -335,6 +335,7 @@ services:
       MYOTA_IMPORT_WORKERS: "1"
       GEODATA_WORKER_MAX_DELIVERIES: "100"
       GEODATA_WORKER_MAX_ACK_PENDING: "1"
+      GEODATA_DELETION_RECONCILE_SECONDS: "15"
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}, seaweedfs: {condition: service_healthy}}
   prometheus:
     image: prom/prometheus:v2.55.1

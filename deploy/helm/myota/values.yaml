@@ -97,6 +97,7 @@ geodataImportProcessing:
   replicas: 1
   maxAckPending: 4
   maxDeliveries: 100
+  deletionReconcileSeconds: 15
 geodataImportRetention:
   enabled: true
   schedule: "17 3 * * *"
