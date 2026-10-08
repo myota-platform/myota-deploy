@@ -14,7 +14,11 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrations
+          {{- if .Values.imageRollout.digests.platform }}
+          image: "{{ .Values.image.repository }}@{{ .Values.imageRollout.digests.platform }}"
+          {{- else }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" | quote }}
           command: ["/bin/bash", "/app/db/migrations/run.sh"]
           env:
