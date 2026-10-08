@@ -214,6 +214,11 @@ spec:
   template:
     metadata:
       labels: {app.kubernetes.io/name: {{ include "myota.name" . }}, app.kubernetes.io/component: grafana}
+      # Dashboard and provisioning files are mounted with subPath. Kubernetes
+      # does not refresh those mounts when a ConfigMap changes, so roll Grafana
+      # whenever any provisioned Grafana file changes.
+      annotations:
+        checksum/grafana-config: {{ (.Files.Glob "observability/grafana/**").AsConfig | sha256sum | quote }}
     spec:
       securityContext: {fsGroup: 472}
       containers:

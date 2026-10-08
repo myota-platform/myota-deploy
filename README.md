@@ -75,7 +75,11 @@ The **MyOTA JetStream backlog and PostGIS query performance** dashboard shows
 broker-side pending/ack-pending, redelivery, and oldest-message-age signals,
 alongside slow-query counts and actual PostGIS query latency. Grafana's
 provisioned dashboard directory matches the mounted dashboard files for both
-Compose and Helm.
+Compose and Helm. The **MyOTA Object Storage** dashboard shows SeaweedFS S3
+request rates, latency, errors, and in-flight uploads. Helm hashes Grafana's
+dashboard and provisioning files into the Grafana pod template so ConfigMap
+updates restart Grafana; its dashboard files use `subPath` mounts, which do not
+refresh in place.
 
 Enable the local observability profile with:
 

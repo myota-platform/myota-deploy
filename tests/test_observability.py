@@ -66,6 +66,43 @@ class ObservabilityConfigurationTests(unittest.TestCase):
             )
         )
 
+    def test_seaweed_dashboard_is_valid_and_rolls_out_with_helm(self):
+        dashboard_path = (
+            ROOT
+            / "observability"
+            / "grafana"
+            / "dashboards"
+            / "myota-object-storage.json"
+        )
+        chart_dashboard_path = (
+            ROOT
+            / "deploy"
+            / "helm"
+            / "myota"
+            / "observability"
+            / "grafana"
+            / "dashboards"
+            / "myota-object-storage.json"
+        )
+        dashboard = json.loads(dashboard_path.read_text())
+        chart_dashboard = json.loads(chart_dashboard_path.read_text())
+        deployment_template = (
+            ROOT
+            / "deploy"
+            / "helm"
+            / "myota"
+            / "templates"
+            / "observability.yaml"
+        ).read_text()
+
+        self.assertEqual(dashboard, chart_dashboard)
+        self.assertEqual("myota-object-storage", dashboard["uid"])
+        self.assertGreater(len(dashboard["panels"]), 0)
+        self.assertIn("checksum/grafana-config:", deployment_template)
+        self.assertIn(
+            '.Files.Glob "observability/grafana/**"', deployment_template
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
