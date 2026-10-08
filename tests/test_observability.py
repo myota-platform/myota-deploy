@@ -7,6 +7,25 @@ ROOT = pathlib.Path(__file__).parents[1]
 
 
 class ObservabilityConfigurationTests(unittest.TestCase):
+    def test_all_provisioned_dashboards_have_requested_defaults_and_match_helm(
+        self,
+    ):
+        for source in (ROOT / "observability/grafana/dashboards").glob(
+            "*.json"
+        ):
+            dashboard = json.loads(source.read_text())
+            mirror = (
+                ROOT
+                / "deploy/helm/myota/observability/grafana/dashboards"
+                / source.name
+            )
+            self.assertEqual(dashboard, json.loads(mirror.read_text()))
+            self.assertEqual(
+                dashboard["time"], {"from": "now-30m", "to": "now"}
+            )
+            self.assertEqual(dashboard["refresh"], "30s")
+            self.assertTrue(dashboard["editable"])
+
     def test_prometheus_uses_collector_boundary(self):
         config = (ROOT / "observability" / "prometheus.yml").read_text()
         self.assertIn("otel-collector:8889", config)

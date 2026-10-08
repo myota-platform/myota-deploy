@@ -1,6 +1,7 @@
 {
   "annotations": {"list": []},
-  "editable": false,
+  "editable": true,
+  "refresh": "30s",
   "panels": [
     {"type":"stat","title":"Users","gridPos":{"h":5,"w":4,"x":0,"y":0},"targets":[{"expr":"myota_identity_users_total{job=\"myota-otel-collector\"}","refId":"A"}]},
     {"type":"stat","title":"Geo entities","gridPos":{"h":5,"w":4,"x":4,"y":0},"targets":[{"expr":"myota_geodata_entities_total{job=\"myota-otel-collector\"}","refId":"A"}]},
@@ -19,7 +20,7 @@
   "style": "dark",
   "tags": ["myota", "operations", "opentelemetry", "real-data"],
   "templating": {"list": []},
-  "time": {"from": "now-6h", "to": "now"},
+  "time": {"from": "now-30m", "to": "now"},
   "title": "MyOTA operations",
   "uid": "myota-operations"
 }

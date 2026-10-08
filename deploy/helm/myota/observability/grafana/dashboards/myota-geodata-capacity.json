@@ -1,6 +1,6 @@
 {
   "annotations": {"list": []},
-  "editable": false,
+  "editable": true,
   "graphTooltip": 1,
   "panels": [
     {"id":1,"type":"timeseries","title":"API request rate by pod","description":"OpenTelemetry HTTP server request counter; pod identity comes from service.instance.id.","gridPos":{"h":8,"w":12,"x":0,"y":0},"datasource":{"type":"prometheus","uid":"myota-prometheus"},"fieldConfig":{"defaults":{"unit":"reqps"},"overrides":[]},"targets":[{"expr":"sum by (service_instance_id) (rate(myota_http_server_requests_total{service_name=\"myota-geodata\"}[5m]))","legendFormat":"{{service_instance_id}}","refId":"A"}]},
@@ -17,11 +17,11 @@
     {"id":12,"type":"timeseries","title":"Outbox backlog before JetStream","gridPos":{"h":8,"w":12,"x":0,"y":40},"datasource":{"type":"prometheus","uid":"myota-prometheus"},"fieldConfig":{"defaults":{"unit":"short"},"overrides":[]},"targets":[{"expr":"myota_geodata_outbox_pending_events{job=\"myota-otel-collector\"}","legendFormat":"unpublished events","refId":"A"},{"expr":"myota_geodata_outbox_oldest_pending_age_seconds{job=\"myota-otel-collector\"}","legendFormat":"oldest unpublished event age","refId":"B"}]},
     {"id":13,"type":"timeseries","title":"Import attempts and cumulative feature results","description":"Database-backed totals from import_run; these are cumulative gauges, not per-second rates.","gridPos":{"h":8,"w":12,"x":12,"y":40},"datasource":{"type":"prometheus","uid":"myota-prometheus"},"fieldConfig":{"defaults":{"unit":"short"},"overrides":[]},"targets":[{"expr":"myota_geodata_import_attempt_count_sum{job=\"myota-otel-collector\"}","legendFormat":"attempt count","refId":"A"},{"expr":"myota_geodata_import_features_preprocessed_sum{job=\"myota-otel-collector\"}","legendFormat":"features preprocessed","refId":"B"},{"expr":"myota_geodata_import_features_promoted_sum{job=\"myota-otel-collector\"}","legendFormat":"features promoted","refId":"C"}]}
   ],
-  "refresh": "15s",
+  "refresh": "30s",
   "schemaVersion": 39,
   "tags": ["myota", "geodata", "capacity", "opentelemetry", "real-data"],
   "templating": {"list": []},
-  "time": {"from": "now-1h", "to": "now"},
+  "time": {"from": "now-30m", "to": "now"},
   "timezone": "browser",
   "title": "MyOTA Geodata capacity baseline",
   "uid": "myota-geodata-capacity",

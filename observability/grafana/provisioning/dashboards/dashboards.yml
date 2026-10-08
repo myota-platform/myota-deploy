@@ -5,6 +5,7 @@ providers:
     folder: MyOTA
     type: file
     disableDeletion: true
-    editable: false
+    editable: true
+    allowUiUpdates: true
     options:
       path: /etc/grafana/dashboards

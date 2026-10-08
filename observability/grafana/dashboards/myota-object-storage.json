@@ -59,7 +59,7 @@
   "schemaVersion": 39,
   "tags": ["myota", "seaweedfs", "object-storage"],
   "templating": {"list": []},
-  "time": {"from": "now-6h", "to": "now"},
+  "time": {"from": "now-30m", "to": "now"},
   "title": "MyOTA Object Storage",
   "uid": "myota-object-storage",
   "version": 1
