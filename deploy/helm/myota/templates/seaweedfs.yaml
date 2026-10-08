@@ -19,6 +19,11 @@ metadata:
   labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: seaweedfs}
 spec:
   replicas: 1
+  # SeaweedFS mini embeds filer state on the single-writer PVC. A rolling
+  # surge starts two processes against the same LevelDB directory and fails
+  # its lock; stop the old pod before attaching the volume to the replacement.
+  strategy:
+    type: Recreate
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: seaweedfs}}
   template:
     metadata: {labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: seaweedfs}}
