@@ -34,6 +34,10 @@ container is required. Compose and Helm pass the configured optional
 
 ## What works now
 
+- All provisioned Grafana dashboards and its default timezone use UTC; retention
+  CronJobs specify `Etc/UTC`. The three database/log timezones already use UTC.
+  API effective dates and browser inputs are UTC, not programme-local times.
+  See the [UTC policy](https://github.com/myota-platform/myota-docs/blob/main/docs/utc-time-policy.md).
 - Named award artwork, authenticated binary asset content and transient mock
   PDF previews use the existing activity image/port 8004, S3 buckets and gateway.
   The synchronized renderer/handler changes require image rollouts only;

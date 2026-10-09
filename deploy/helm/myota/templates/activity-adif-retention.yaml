@@ -4,6 +4,7 @@ kind: CronJob
 metadata:
   name: myota-adif-retention
 spec:
+  timeZone: Etc/UTC
   schedule: {{ .Values.activityAdifRetention.schedule | quote }}
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 3600

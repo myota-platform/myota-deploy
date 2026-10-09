@@ -225,6 +225,7 @@ spec:
         - name: grafana
           image: {{ .Values.observability.grafana.image }}
           env:
+            - {name: GF_DATE_FORMATS_DEFAULT_TIMEZONE, value: UTC}
             - {name: GF_SERVER_ROOT_URL, value: "%(protocol)s://%(domain)s/observability/"}
             - {name: GF_SERVER_SERVE_FROM_SUB_PATH, value: "true"}
             - {name: GF_AUTH_ANONYMOUS_ENABLED, value: "false"}

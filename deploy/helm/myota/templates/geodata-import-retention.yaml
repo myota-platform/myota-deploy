@@ -4,6 +4,7 @@ kind: CronJob
 metadata:
   name: myota-geodata-import-retention
 spec:
+  timeZone: Etc/UTC
   schedule: {{ .Values.geodataImportRetention.schedule | quote }}
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 3600

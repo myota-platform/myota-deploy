@@ -24,6 +24,7 @@ class ObservabilityConfigurationTests(unittest.TestCase):
                 dashboard["time"], {"from": "now-30m", "to": "now"}
             )
             self.assertEqual(dashboard["refresh"], "30s")
+            self.assertEqual(dashboard["timezone"], "utc")
             self.assertTrue(dashboard["editable"])
 
     def test_prometheus_uses_collector_boundary(self):
