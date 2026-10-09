@@ -96,7 +96,7 @@ serves permission-checked APIs through the gateway. Core migration 002 creates
 its table. Collector provisioning scrapes the service and alerts on service
 outages or stalled sample recording (a recorded failure is not a successful
 broker sample). See the
-[status-page guide](https://github.com/myota-platform/myota-docs/blob/main/docs/jetstream-admin-status.md).
+[status-page guide](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/jetstream-admin-status.md).
 
 Geodata migration 016 enables database-authoritative row state and fences
 obsolete writers. New API/worker images wait for its feature marker before

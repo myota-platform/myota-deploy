@@ -182,6 +182,7 @@ def process_statistics(
 def process_qso_ingestion(
     repo: ActivityRepository, payload: dict[str, Any]
 ) -> None:
+    repo.get_activation(payload["activationId"])
     normalized = []
     for row in payload["records"]:
         record = normalize_qso(
