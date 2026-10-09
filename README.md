@@ -24,6 +24,12 @@ locks finalization through candidate cleanup. These fixes are mirrored in
 [operations runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#activity-notification-consumer-rollouts)
 for the legacy push-consumer handoff and cancellation guarantees.
 
+The NATS event/work migration is in Phase 1 preparation. The current broker
+remains on its legacy Interest-retained stream; the target contract registry and
+create-only provisioner are not activated on the deployed broker. See the
+[provisioning runbook](docs/jetstream-topology.md), [migration plan](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/nats-event-migration-plan.md),
+and [Phase 1 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase1-contract-topology-2026-10-09.md).
+
 The geodata worker also consumes `myota.geodata.entity.location-enrichment.v1`
 through durable consumer `geodata-location-enrichment-v1`. It performs
 reverse-geocoding outside the API transaction and applies a result only when
