@@ -64,6 +64,16 @@ container is required. Compose and Helm pass the configured optional
 
 ## Observability and Phase 4 operations
 
+The Geodata API has a bounded scale profile in Helm: two minimum, three
+maximum, CPU-based HPA, an API pod disruption budget, rolling-update surge,
+best-effort pod spreading, and per-pod CPU/memory/database-pool bounds. Its
+worker scales independently with a two-replica ceiling and queue-age/backlog
+signals. The Spainip limits reserve database connections for migrations and
+maintenance. Databases, SeaweedFS, and JetStream remain single-replica stateful
+services; they are not made highly available by adding API pods. See the
+[Phase 4 scaling record](https://github.com/myota-platform/myota-docs/blob/main/docs/geodata/evidence/phase4-infrastructure-scaling-2026-10-09.md)
+and the [deployment guide](deploy/helm/myota/DEPLOYMENT.md#geodata-api-replica-safety).
+
 **SeaweedFS storage** (`/object-storage`) follows the NATS status-page pattern:
 operations-owned samples/history, authenticated API access, read-only storage
 health and native exporter gauges. Core migration 003 creates its history table.

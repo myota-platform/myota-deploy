@@ -66,6 +66,18 @@ jobs:
           grep -q 'name: wait-for-schema' /tmp/myota-spainip-rendered.yaml
           grep -q 'kind: IngressRoute' /tmp/myota-spainip-rendered.yaml
           grep -q 'maxSurge: 0' /tmp/myota-spainip-rendered.yaml
+          grep -q 'maxUnavailable: 0' /tmp/myota-spainip-rendered.yaml
+          grep -q 'kind: HorizontalPodAutoscaler' /tmp/myota-spainip-rendered.yaml
+          grep -q 'name: myota-geodata-api' /tmp/myota-spainip-rendered.yaml
+          grep -q 'maxReplicas: 3' /tmp/myota-spainip-rendered.yaml
+          grep -q 'minReplicas: 2' /tmp/myota-spainip-rendered.yaml
+          grep -q 'averageUtilization: 70' /tmp/myota-spainip-rendered.yaml
+          grep -q 'minAvailable: 1' /tmp/myota-spainip-rendered.yaml
+          grep -q 'value: "8"' /tmp/myota-spainip-rendered.yaml
+          grep -q 'topologyKey: kubernetes.io/hostname' /tmp/myota-spainip-rendered.yaml
+          grep -q 'memory: 256Mi' /tmp/myota-spainip-rendered.yaml
+          grep -q 'memory: 1Gi' /tmp/myota-spainip-rendered.yaml
+          grep -q 'failureThreshold: 30' /tmp/myota-spainip-rendered.yaml
           grep -q 'path: /healthz, port: http' /tmp/myota-spainip-rendered.yaml
           grep -q 'name: myota-grafana-data' /tmp/myota-spainip-rendered.yaml
           grep -q 'GF_AUTH_ANONYMOUS_ENABLED, value: "false"' /tmp/myota-spainip-rendered.yaml
@@ -75,5 +87,19 @@ jobs:
           test "$(grep -c 'name: BIGDATACLOUD_LOCALITY_LANGUAGE' /tmp/myota-spainip-rendered.yaml)" -eq 2
           if grep -q 'helm.sh/hook:' /tmp/myota-spainip-rendered.yaml; then
             echo 'Migrations must run as a normal Job, not a Helm hook.' >&2
+            exit 1
+          fi
+          if helm template myota deploy/helm/myota \
+            --namespace myota \
+            --values deploy/helm/myota/values-spainip.yaml \
+            --set geodataImportProcessing.replicas=3 >/dev/null; then
+            echo 'Geodata worker replica limit was not enforced.' >&2
+            exit 1
+          fi
+          if helm template myota deploy/helm/myota \
+            --namespace myota \
+            --values deploy/helm/myota/values-spainip.yaml \
+            --set geodataConnectionBudget.reservedConnections=80 >/dev/null; then
+            echo 'Geodata Postgres connection budget was not enforced.' >&2
             exit 1
           fi

@@ -1,0 +1,70 @@
+{{- $apiMax := int .Values.geodataApiAutoscaling.maxReplicas -}}
+{{- $apiPool := int .Values.services.geodata.dbPoolMax -}}
+{{- $workerMax := int .Values.geodataImportProcessing.maxReplicas -}}
+{{- $workerPool := int .Values.geodataImportProcessing.dbPoolMax -}}
+{{- $outboxPool := int .Values.geodataConnectionBudget.outboxPoolMax -}}
+{{- $reserve := int .Values.geodataConnectionBudget.reservedConnections -}}
+{{- $connectionBudget := add (mul $apiMax $apiPool) (mul $workerMax $workerPool) $outboxPool $reserve -}}
+{{- if gt (int .Values.geodataApiAutoscaling.minReplicas) $apiMax -}}
+{{- fail "geodataApiAutoscaling.minReplicas cannot exceed maxReplicas" -}}
+{{- end -}}
+{{- if lt $apiMax 1 -}}
+{{- fail "geodataApiAutoscaling.maxReplicas must be at least 1" -}}
+{{- end -}}
+{{- if and (not .Values.geodataApiAutoscaling.enabled) (gt (int .Values.services.geodata.replicas) $apiMax) -}}
+{{- fail "services.geodata.replicas cannot exceed geodataApiAutoscaling.maxReplicas" -}}
+{{- end -}}
+{{- if gt $connectionBudget (int .Values.geodataConnectionBudget.maxConnections) -}}
+{{- fail (printf "geodata maximum connection budget %d exceeds configured PostgreSQL maximum %d" $connectionBudget (int .Values.geodataConnectionBudget.maxConnections)) -}}
+{{- end -}}
+{{- if and .Values.geodataImportProcessing.enabled (gt (int .Values.geodataImportProcessing.replicas) $workerMax) -}}
+{{- fail "geodataImportProcessing.replicas cannot exceed geodataImportProcessing.maxReplicas" -}}
+{{- end -}}
+{{ if .Values.geodataApiAvailability.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myota-geodata-api
+spec:
+  minAvailable: {{ .Values.geodataApiAvailability.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: myota
+      app.kubernetes.io/component: geodata
+{{ end }}
+{{ if .Values.geodataApiAutoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myota-geodata
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myota-geodata
+  minReplicas: {{ .Values.geodataApiAutoscaling.minReplicas }}
+  maxReplicas: {{ .Values.geodataApiAutoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.geodataApiAutoscaling.targetCPUUtilizationPercentage }}
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: {{ .Values.geodataApiAutoscaling.scaleUpStabilizationSeconds }}
+      selectPolicy: Max
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: {{ .Values.geodataApiAutoscaling.scaleDownStabilizationSeconds }}
+      selectPolicy: Min
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+{{ end }}

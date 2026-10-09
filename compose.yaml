@@ -121,6 +121,8 @@ services:
       MYOTA_LOAD_TEST_CLEANUP_ENABLED: "1"
       MYOTA_MAX_BODY_BYTES: "1073741824"
       MYOTA_UPLOAD_MAX_BYTES: "1073741824"
+      MYOTA_DB_POOL_MAX: "8"
+      MYOTA_HTTP_MAX_WORKERS: "64"
       # Upload and import work is consumed from durable JetStream queues by a
       # separately scalable geodata-owned worker process.
       MYOTA_UPLOAD_PART_MAX_BYTES: "16777216"
@@ -136,6 +138,9 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     depends_on: {migrations: {condition: service_completed_successfully}, seaweedfs: {condition: service_healthy}, nats: {condition: service_started}}
     ports: ["8003:8003"]
+    cpus: 1.0
+    mem_limit: 1g
+    mem_reservation: 256m
   geodata-import-retention:
     build: ../myota-geodata-service
     restart: unless-stopped
@@ -329,6 +334,7 @@ services:
       MYOTA_ACTIVITY_URL: http://activity:8004
       GEO_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
+      MYOTA_DB_POOL_MAX: "4"
       MYOTA_AUTH_SIGNING_KEY: myota-local-development-signing-key
       NATS_URL: nats://nats:4222
       MYOTA_OBJECT_STORAGE_ENDPOINT: http://seaweedfs:8333
@@ -340,9 +346,12 @@ services:
       MYOTA_IMPORT_WORKERS: "1"
       MYOTA_IMPORT_BATCH_SIZE: "100"
       GEODATA_WORKER_MAX_DELIVERIES: "100"
-      GEODATA_WORKER_MAX_ACK_PENDING: "1"
+      GEODATA_WORKER_MAX_ACK_PENDING: "4"
       GEODATA_DELETION_RECONCILE_SECONDS: "15"
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}, seaweedfs: {condition: service_healthy}}
+    cpus: 1.0
+    mem_limit: 1g
+    mem_reservation: 256m
   prometheus:
     image: prom/prometheus:v2.55.1
     profiles: [observability]

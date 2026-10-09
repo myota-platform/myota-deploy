@@ -89,6 +89,49 @@ configures this in-cluster endpoint and defaults to
 `http://myota-activity:8004`; if service names or namespaces are customized,
 keep this URL aligned with the Activity Service DNS name.
 
+## Geodata API replica safety
+
+The geodata API is stateless: its Deployment has no PVC or pod-local accepted
+upload source. Durable source objects stay in SeaweedFS, authoritative state
+and leases stay in PostGIS, and asynchronous work stays in JetStream. The API
+can therefore have multiple pods without sharing a `ReadWriteOnce` volume.
+Only the geodata API scales automatically; databases, SeaweedFS and NATS remain
+single-replica stateful services on this single-node K3s installation and must
+not be scaled by changing application replica settings.
+
+The Spainip values run two API pods, with a CPU HPA from two to at most three
+pods at 70% of the 250m CPU request. Scale-up adds at most one pod per minute;
+scale-down observes a five-minute stabilization window. A PDB preserves one
+available API pod during voluntary eviction, the Deployment rolls with zero
+unavailable and one surge pod, and hostname topology spreading is best-effort
+so a one-node cluster can still schedule all replicas. This protects pod-level
+replica changes and rolling updates; it does not provide node, database,
+SeaweedFS, or JetStream high availability.
+
+Connection use is bounded independently of HTTP concurrency. The chart caps
+each API pool at eight connections and each geodata worker pool at four. At
+the configured maxima (three API pods, two worker pods, one geo outbox pool of
+ten), plus the reserved forty connections, the computed budget is 82 of the
+live geo database's 100 `max_connections`. Helm rendering fails if a worker
+replica cap or the configured connection budget is exceeded. Adjust the
+documented database maximum and reserve together if the Postgres setting
+changes; do not simply raise the HPA maximum.
+
+Geodata API and worker containers request 250m CPU/256 MiB memory and are
+limited to one CPU/1 GiB. The API has startup, readiness, and liveness probes;
+SIGTERM grace is 60 seconds. Worker bounds remain independent and manual: one
+to two replicas, using the queue-depth/oldest-message Grafana signals and the
+JetStream durable pull consumer's shared acknowledgement limit. Worker SIGTERM
+stops new pulls and drains active work before lease recovery. A tested maximum
+throughput for two workers is not implied by this configuration.
+
+The server also bounds active HTTP handlers (64 per API pod), database pool
+connections (8 per API pod), resumable upload parts (16 MiB), and request bodies
+(1 GiB hard limit); the gateway uses the configured long upload timeout. These
+are per-deployment maxima, not a global requests-per-second limiter. Follow
+`docs/geodata/horizontal-scaling-roadmap.md` and its Phase 4 evidence before
+raising any replica or concurrency ceiling.
+
 The chart schedules separate object-retention jobs. Geodata import sources and
 their import history use the configurable 30-day policy under
 `geodataImportRetention`; completed ADIF source files are deleted after 15 days

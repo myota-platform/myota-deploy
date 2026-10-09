@@ -1,10 +1,20 @@
 {{- range $name, $cfg := .Values.services }}
+{{- $podResources := default $.Values.resources $cfg.resources }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "myota.fullname" (dict "name" $name) }}
 spec:
+  {{- if not (and (eq $name "geodata") $.Values.geodataApiAutoscaling.enabled) }}
   replicas: {{ default 1 $cfg.replicas }}
+  {{- end }}
+  {{- if eq $name "geodata" }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  {{- end }}
   selector: {matchLabels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $name }}}}
   template:
     metadata:
@@ -15,6 +25,19 @@ spec:
         rollout.myota.dev/location-enrichment-revision: {{ $.Values.geodataPipeline.locationEnrichment.rolloutRevision | quote }}
         {{ end }}
     spec:
+      {{- if eq $name "geodata" }}
+      terminationGracePeriodSeconds: 60
+      {{- if $.Values.geodataApiAvailability.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: myota
+              app.kubernetes.io/component: geodata
+      {{- end }}
+      {{- end }}
       initContainers:
         {{- if eq $name "activity" }}
         {{ include "myota.waitForSchema" (dict "root" $ "databaseUrlKey" "activity-database-url") | nindent 8 }}
@@ -140,6 +163,10 @@ spec:
               value: {{ $.Values.geodataPipeline.locationEnrichment.language | quote }}
             {{- end }}
             {{- end }}
+            {{- if eq $name "geodata" }}
+            - name: MYOTA_DB_POOL_MAX
+              value: {{ $cfg.dbPoolMax | default 8 | quote }}
+            {{- end }}
             {{- if eq $name "identity" }}
             - name: MYOTA_ACCESS_TOKEN_SECONDS
               value: {{ $.Values.auth.accessTokenSeconds | default 1800 | quote }}
@@ -157,9 +184,27 @@ spec:
                   optional: true
             {{- end }}
           ports: [{name: http, containerPort: {{ $cfg.port }} }]
+          {{- if eq $name "geodata" }}
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          {{- else }}
           readinessProbe: {httpGet: {path: /healthz, port: http}}
           livenessProbe: {httpGet: {path: /healthz, port: http}}
-          resources: {{- toYaml $.Values.resources | nindent 12 }}
+          {{- end }}
+          resources: {{- toYaml $podResources | nindent 12 }}
 ---
 {{- end }}
 {{- if .Values.activityWorkers.enabled }}
@@ -288,6 +333,8 @@ spec:
               valueFrom: {secretKeyRef: {name: {{ .Values.postgres.existingSecret }}, key: geo-database-url}}
             - name: MYOTA_REQUIRE_DURABILITY
               value: "1"
+            - name: MYOTA_DB_POOL_MAX
+              value: {{ .Values.geodataImportProcessing.dbPoolMax | quote }}
             - name: MYOTA_AUTH_SIGNING_KEY
               valueFrom: {secretKeyRef: {name: {{ .Values.auth.existingSecret }}, key: signing-key}}
             - name: NATS_URL
@@ -320,7 +367,7 @@ spec:
               value: {{ .Values.geodataImportProcessing.deletionReconcileSeconds | quote }}
             - name: MYOTA_IMPORT_BATCH_SIZE
               value: {{ .Values.geodataImportProcessing.batchSize | quote }}
-          resources: {{- toYaml .Values.resources | nindent 12 }}
+          resources: {{- toYaml (default .Values.resources .Values.geodataImportProcessing.resources) | nindent 12 }}
 {{- end }}
 ---
 apiVersion: apps/v1

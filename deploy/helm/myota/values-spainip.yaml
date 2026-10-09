@@ -11,6 +11,17 @@ geodataLoadTestCleanup:
   enabled: true
   allowProductionCleanup: true
 
+# The geodata API is stateless and has a bounded Postgres connection budget.
+# Keep two pods available; CPU HPA may add at most one more pod.
+services:
+  geodata:
+    replicas: 2
+
+geodataApiAutoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+
 ingress:
   enabled: true
   provider: traefik
