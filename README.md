@@ -34,6 +34,11 @@ container is required. Compose and Helm pass the configured optional
 
 ## What works now
 
+- Named award artwork, authenticated binary asset content and transient mock
+  PDF previews use the existing activity image/port 8004, S3 buckets and gateway.
+  The synchronized renderer/handler changes require image rollouts only;
+  Compose/Helm service topology and secrets remain unchanged. See the
+  [programme/award design guide](https://github.com/myota-platform/myota-docs/blob/main/docs/programme-and-award-design.md).
 - Amateur-radio-aware identity: operator/SWL participation, multiple callsigns, one primary callsign, lifecycle and verification fields.
 - Shared entity-category catalogue used by imports and review, with programme assignment and programme-owned rules handled separately.
 - Geodata lifecycle: adapter/import run or community proposal → pre-processing → administrator validation → CANDIDATE or APPROVED; normal review then permits CANDIDATE → APPROVED or REJECTED, and approved entities may only be RETIRED.
