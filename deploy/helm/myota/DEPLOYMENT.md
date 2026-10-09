@@ -203,11 +203,16 @@ review the workflow result before Fleet reconciles them.
   unacknowledged messages remain durable and are redelivered. SIGTERM stops
   pulls, drains the active delivery, and then closes the NATS connection.
 - `geodataImportProcessing.batchSize` controls the default 100-feature
-  preprocessing checkpoint window for streamed GeoJSON FeatureCollections.
-  This does not yet make KML, GPX, Shapefile, or complete-snapshot parsing
-  memory-bounded. Source objects are staged in worker-local scratch, so ensure
-  node ephemeral storage can accommodate the configured upload limit; worker
-  termination/reclaim qualification remains an open roadmap gate.
+  preprocessing checkpoint window. Streaming decoders cover GeoJSON, KML,
+  GPX, zipped Shapefile/ParkServe, and OSM PBF. Current bounded qualification
+  uses a 16 MiB decoded-feature cap, 250,000-vertex cap, 5,000-feature import
+  cap, and checkpoints bounded by 100 features or 32 MiB serialized source
+  data. The recorded parser RSS and worker recovery evidence is in the
+  [Phase 3 report](https://github.com/myota-platform/myota-docs/blob/main/docs/geodata/evidence/phase3-bounded-preprocessing-2026-10-09.md).
+  Source objects are staged in worker-local scratch, so ensure node ephemeral
+  storage can accommodate the configured upload limit. These correctness bounds
+  do not qualify larger replica counts or throughput; Phase 4/5 scaling gates
+  remain open.
 - Fleet's GitRepo polling interval controls when a pushed commit is fetched.
   A bundle re-sync only reapplies the revision Fleet has already fetched; it
   does not necessarily fetch a newer Git commit immediately. Check the
