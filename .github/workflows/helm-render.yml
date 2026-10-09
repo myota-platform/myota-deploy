@@ -54,6 +54,8 @@ jobs:
 
       - name: Verify migration gate and Traefik routes
         run: |
+          grep -q 'name: GF_DATE_FORMATS_DEFAULT_TIMEZONE, value: UTC' /tmp/myota-spainip-rendered.yaml
+          test "$(grep -c 'timeZone: Etc/UTC' /tmp/myota-spainip-rendered.yaml)" -eq 2
           grep -q 'name: myota-migrations-' /tmp/myota-spainip-rendered.yaml
           grep -q 'imagePullPolicy: "Always"' /tmp/myota-spainip-rendered.yaml
           grep -q 'value: "1073741824"' /tmp/myota-spainip-rendered.yaml
