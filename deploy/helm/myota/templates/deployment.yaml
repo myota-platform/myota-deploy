@@ -318,6 +318,8 @@ spec:
               value: {{ .Values.geodataImportProcessing.maxAckPending | quote }}
             - name: GEODATA_DELETION_RECONCILE_SECONDS
               value: {{ .Values.geodataImportProcessing.deletionReconcileSeconds | quote }}
+            - name: MYOTA_IMPORT_BATCH_SIZE
+              value: {{ .Values.geodataImportProcessing.batchSize | quote }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
 {{- end }}
 ---

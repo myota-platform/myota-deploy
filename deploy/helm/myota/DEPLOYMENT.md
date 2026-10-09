@@ -202,6 +202,12 @@ review the workflow result before Fleet reconciles them.
   `maxUnavailable: 1`) allows a brief worker-capacity pause during upgrades;
   unacknowledged messages remain durable and are redelivered. SIGTERM stops
   pulls, drains the active delivery, and then closes the NATS connection.
+- `geodataImportProcessing.batchSize` controls the default 100-feature
+  preprocessing checkpoint window for streamed GeoJSON FeatureCollections.
+  This does not yet make KML, GPX, Shapefile, or complete-snapshot parsing
+  memory-bounded. Source objects are staged in worker-local scratch, so ensure
+  node ephemeral storage can accommodate the configured upload limit; worker
+  termination/reclaim qualification remains an open roadmap gate.
 - Fleet's GitRepo polling interval controls when a pushed commit is fetched.
   A bundle re-sync only reapplies the revision Fleet has already fetched; it
   does not necessarily fetch a newer Git commit immediately. Check the
