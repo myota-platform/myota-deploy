@@ -25,7 +25,7 @@ spec:
             {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "geo-database-url") | nindent 12 }}
           containers:
             - name: retention
-              image: "{{ .Values.services.geodata.imageRepository }}:{{ default .Values.image.tag .Values.services.geodata.imageTag }}"
+              image: {{ include "myota.imageReference" (dict "repository" .Values.services.geodata.imageRepository "tag" (default .Values.image.tag .Values.services.geodata.imageTag) "digest" .Values.imageRollout.digests.geodata) | quote }}
               command: ["python3", "geodata_retention_worker.py"]
               env:
                 - name: GEO_DATABASE_URL
