@@ -12,8 +12,12 @@ This repository owns Compose, Fleet/Helm, migration orchestration and
 observability provisioning. Domain implementations remain in their service
 repositories; `services/` contains synchronized integration copies.
 
-The live Activity notification consumer uses durable
-`activity-notifications-pull-v1`; Helm gives its SIGTERM/drain path 60 seconds.
+The Activity notification consumer uses the registered exact-filter durable
+`activity-notifications-v1`. Helm pre-upgrade provisioning and post-upgrade
+legacy retirement are defined in the notification topology hooks. Its bounded
+outcome metrics feed the OpenTelemetry Collector, Grafana dashboard and
+Alertmanager rules; notification replay requires the audited Activity redrive
+tool.
 The shared `MYOTA_EVENTS` stream currently uses Interest retention, mixing facts
 with legacy Geodata work. The 30-day maximum age is a backlog safety bound; the
 stream is not a replay archive. Geodata cancellation persists lifecycle fields

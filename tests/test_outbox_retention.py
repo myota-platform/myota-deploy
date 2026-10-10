@@ -44,6 +44,22 @@ class FakeNats:
 
 
 class OutboxRetentionTests(unittest.IsolatedAsyncioTestCase):
+    def test_activity_consumer_uses_exact_registered_event_filters(self):
+        consumer = next(
+            item
+            for item in required_consumers()
+            if item.durable_name == "activity-notifications-v1"
+        )
+        self.assertEqual(consumer.filter_subject, None)
+        self.assertEqual(len(consumer.filter_subjects), 21)
+        self.assertTrue(
+            all(
+                subject.startswith("myota.events.")
+                for subject in consumer.filter_subjects
+            )
+        )
+        self.assertNotIn("myota.events.>", consumer.filter_subjects)
+
     def test_geodata_work_requires_a_provisioned_queue(self):
         with self.assertRaisesRegex(ValueError, "unregistered"):
             event_subject(
