@@ -23,7 +23,7 @@ with legacy Geodata work. The 30-day maximum age is a backlog safety bound; the
 stream is not a replay archive. Geodata cancellation persists lifecycle fields
 through the row repository and locks finalization through candidate cleanup.
 These fixes are mirrored in `services/` for integrated deployments. See the
-[operations runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#activity-notification-consumer-rollouts)
+[notification runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/activity-notification-consumer.md)
 for the legacy push-consumer handoff and cancellation guarantees.
 
 Phase 1 contract/topology and Phase 2 relay hardening are complete within their
@@ -310,3 +310,12 @@ render/validate Helm through the GitHub chart workflow.
 
 The original `ea7klk/mpota` repository remains untouched; see the central
 [migration strategy](https://github.com/myota-platform/myota-docs/blob/main/docs/migration-from-mpota.md).
+
+
+Phase 4 source changes move six Activity job kinds to dedicated per-kind
+JetStream pull durables. The Activity database remains the status, payload,
+retry, and redrive authority; a guarded migration backfills queued jobs and
+removes the obsolete poller claim index. The production worker drain and
+migration rollout must follow the staged procedure in the [Activity work queue
+runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/activity-work-queues.md)
+and [Phase 4 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase4-activity-work-2026-10-10.md).
