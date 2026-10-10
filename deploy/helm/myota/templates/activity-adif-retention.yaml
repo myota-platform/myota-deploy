@@ -25,7 +25,7 @@ spec:
             {{ include "myota.waitForSchema" (dict "root" . "databaseUrlKey" "activity-database-url") | nindent 12 }}
           containers:
             - name: retention
-              image: "{{ .Values.services.activity.imageRepository }}:{{ default .Values.image.tag .Values.services.activity.imageTag }}"
+              image: {{ include "myota.imageReference" (dict "repository" .Values.services.activity.imageRepository "tag" (default .Values.image.tag .Values.services.activity.imageTag) "digest" .Values.imageRollout.digests.activity) | quote }}
               command: ["python3", "adif_retention_worker.py"]
               env:
                 - name: ACTIVITY_DATABASE_URL
