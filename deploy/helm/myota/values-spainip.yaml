@@ -59,17 +59,17 @@ postgres:
   geoDatabase: myota_geo
   existingSecret: myota-postgres
 
-# Phase 4 provisions only Activity's dedicated WorkQueue stream and its six
-# registered durables. It does not convert MYOTA_EVENTS or change Geodata work.
+# Phase 5 provisions only Geodata's dedicated WorkQueue stream and its four
+# registered durables. Existing Activity work remains independent.
 jetstreamProvisioner:
   enabled: true
   confirmedMigrationGate: true
-  scope: activity-work
+  scope: geodata-work
   capacity:
-    activityWorkMaxAgeSeconds: "2592000"
-    activityWorkMaxBytes: "1073741824"
-    activityWorkMaxMessages: "250000"
-    activityWorkMaxMessageBytes: "1048576"
+    geodataWorkMaxAgeSeconds: "2592000"
+    geodataWorkMaxBytes: "3221225472"
+    geodataWorkMaxMessages: "500000"
+    geodataWorkMaxMessageBytes: "1048576"
 
 # Phase 4 drain gate: keep the old Activity poll workers stopped until the
 # dedicated work stream and migration are enabled in the next rollout step.
