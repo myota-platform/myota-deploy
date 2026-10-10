@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 import sys
 from pathlib import Path
 
@@ -76,6 +77,31 @@ class ActivityExecutionTests(unittest.TestCase):
         )
         self.assertEqual(closed["status"], "CLOSED")
         self.assertTrue(closed["ruleEvaluation"]["valid"])
+
+    def test_entity_deletion_cascade_forwards_idempotency_key(self) -> None:
+        class FakeRepository:
+            durable = True
+
+            def cascade_delete_entity(self, *args):
+                self.call = args
+                return {"entityId": args[0]}
+
+        repository = FakeRepository()
+        with patch.object(ActivityHandler, "repository", repository):
+            result = ActivityHandler.cascade_delete_entity(
+                None,
+                {
+                    "entityId": "entity-1",
+                    "_body": {"deletedBy": "admin-1"},
+                    "Idempotency-Key": "geodata-delete:job-1",
+                },
+            )
+
+        self.assertEqual(result, {"entityId": "entity-1"})
+        self.assertEqual(
+            repository.call,
+            ("entity-1", "admin-1", "geodata-delete:job-1"),
+        )
 
     def test_adif_normalization_and_malware_gate(self) -> None:
         records = parse_adif(
