@@ -20,12 +20,7 @@ metadata:
   name: myota-nats-config
 data:
   nats.conf: |
-    port: 4222
-    jetstream: {store_dir: "/data"}
-    accounts: {
-      SYS: {users: [{user: {{ .Values.nats.systemAccount.username | quote }}, password: $NATS_SYS_PASSWORD_HASH}]}
-    }
-    system_account: SYS
+{{ tpl (.Files.Get "observability/nats.conf") . | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -38,7 +33,7 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: myota, app.kubernetes.io/component: nats}
       annotations:
-        checksum/nats-config: {{ .Files.Get "templates/messaging.yaml" | sha256sum | quote }}
+        checksum/nats-config: {{ tpl (.Files.Get "observability/nats.conf") . | sha256sum | quote }}
     spec:
       containers:
         - name: nats

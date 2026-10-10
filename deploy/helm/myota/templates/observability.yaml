@@ -42,8 +42,6 @@ data:
 {{ .Files.Get "observability/grafana/dashboards/myota-api-performance.json" | indent 4 }}
   myota-geodata-capacity.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-geodata-capacity.json" | indent 4 }}
-  myota-jetstream-backlog.json: |
-{{ .Files.Get "observability/grafana/dashboards/myota-jetstream-backlog.json" | indent 4 }}
   myota-object-storage.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-object-storage.json" | indent 4 }}
   alert-rules.yml: |
@@ -260,7 +258,6 @@ spec:
             - {name: config, mountPath: /etc/grafana/dashboards/myota-operations.json, subPath: myota-operations.json}
             - {name: config, mountPath: /etc/grafana/dashboards/myota-api-performance.json, subPath: myota-api-performance.json}
             - {name: config, mountPath: /etc/grafana/dashboards/myota-geodata-capacity.json, subPath: myota-geodata-capacity.json}
-            - {name: config, mountPath: /etc/grafana/dashboards/myota-jetstream-backlog.json, subPath: myota-jetstream-backlog.json}
             - {name: config, mountPath: /etc/grafana/dashboards/myota-object-storage.json, subPath: myota-object-storage.json}
             - {name: nats-dashboards, mountPath: /etc/grafana/dashboards-nats}
             - {name: data, mountPath: /var/lib/grafana}
