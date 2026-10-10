@@ -26,18 +26,18 @@ These fixes are mirrored in `services/` for integrated deployments. See the
 [notification runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/activity-notification-consumer.md)
 for the legacy push-consumer handoff and cancellation guarantees.
 
-Phase 1 contract/topology and Phase 2 relay hardening are complete within their
-recorded evidence bounds. The relay source routes registered facts through the
-contract registry, enforces stable IDs and serialized-size limits, retries
-publish failures, persists dead letters, and reports per-database backlog and
-health metrics. It validates the existing mixed stream and durables read-only;
-broker topology changes remain deployment-owned. The live broker remains on
-Interest retention and legacy work subjects. NATS remains cluster-internal
-without auth/TLS under the accepted single-tenant trust boundary, and off-node
-recovery is deferred. See the [provisioning runbook](docs/jetstream-topology.md),
+NATS migration Phases 0–4 are complete within their recorded evidence bounds.
+The deploy-owned relays validate bounded fact/work routes and exact provisioned
+durables. Phase 5 Geodata commands now use a separate bounded WorkQueue path in
+source. Helm 183 pre-provisioned `MYOTA_GEODATA_WORK` and its four exact
+durables, but production's Geodata worker still uses the legacy subjects and
+migration 021 is not installed. Do not retire legacy durables until image/schema
+rollout, route checks, failure qualification, and the rollback window pass.
+NATS remains cluster-internal without auth/TLS under the accepted single-tenant
+boundary; off-node recovery is deferred. See the [provisioning runbook](docs/jetstream-topology.md),
+[Phase 5 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase5-geodata-work-2026-10-10.md),
 [migration plan](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/nats-event-migration-plan.md),
-the [Phase 1 completion evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase1-completion-2026-10-10.md),
-and [Phase 2 relay evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase2-relay-hardening-2026-10-10.md).
+and [Phase 4 Activity runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/activity-work-queues.md).
 
 The geodata worker also consumes `myota.geodata.entity.location-enrichment.v1`
 through durable consumer `geodata-location-enrichment-v1`. It performs
@@ -319,3 +319,8 @@ removes the obsolete poller claim index. The production worker drain and
 migration rollout must follow the staged procedure in the [Activity work queue
 runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/activity-work-queues.md)
 and [Phase 4 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase4-activity-work-2026-10-10.md).
+
+Phase 5 Geodata work source and isolated reliability tests are in progress. The
+live target stream is provisioned but empty; the legacy workers remain active
+until migration 021, immutable image rollout, and database-backed route checks
+pass. See the [Phase 5 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase5-geodata-work-2026-10-10.md).
