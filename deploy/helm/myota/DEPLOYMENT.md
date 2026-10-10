@@ -193,12 +193,15 @@ data directory.
 ## Fleet setup
 
 The `Roll out newly published service images` GitHub Actions workflow checks
-the public GHCR `:latest` tags every five minutes and on demand. When any
-digest changes, it commits the new digests to `values-image-digests.yaml`.
-Fleet reconciles that commit; the digest annotation changes the pod template
-and Kubernetes performs a rolling update. This avoids relying on mutable image
-tags alone, which do not restart already-running pods. Keep Fleet pointed at
-the deployment repository's intended branch and allow it to reconcile commits.
+the public GHCR `:latest` tags every five minutes and on demand. When a digest
+changes, it commits the immutable digest to `values-image-digests.yaml`.
+Fleet reconciles the commit. The chart's `myota.imageReference` helper renders
+first-party service, worker, notification, provisioning, migration and
+scheduled-job containers as `repository@sha256:…` when a digest is configured.
+The digest annotation is also retained in the pod template for rollout
+visibility. Empty digests fall back to the configured tag for local or
+non-production environments; production values supply digests. Keep Fleet
+pointed at the intended deployment branch and allow it to reconcile commits.
 
 The identity access-token lifetime is configurable as
 `auth.accessTokenSeconds`; the Spainip values set it to 1800 seconds (30
@@ -226,10 +229,11 @@ review the workflow result before Fleet reconciles them.
 
 ## Rollouts and operational checks
 
-- Production currently follows the published `latest` tags. The digest-sync
-  workflow records those exact image digests and triggers a rolling update;
-  for controlled releases, set an immutable `services.<name>.imageTag` and
-  update its corresponding digest deliberately.
+- Production first-party workloads are rendered from immutable image digests
+  recorded in `values-image-digests.yaml`; pod references and runtime content
+  therefore use the same artifact. Update a digest through the image-digest-sync
+  workflow or a reviewed release change. Local/non-production values may omit a
+  digest and use the configured tag fallback.
 - Confirm `/healthz` through `https://api.myota.top/healthz`; open the admin UI at
   `https://admin.myota.top` and test login, entity reads, geodata import, and
   one activity/QSO workflow before announcing the service.
