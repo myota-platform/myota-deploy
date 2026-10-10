@@ -110,25 +110,8 @@ and refresh every 30 seconds. UI-created dashboards persist on Grafana's PVC;
 source provisioning overwrites UI edits to provisioned dashboards on update.
 See the [storage/admin access guide](https://github.com/myota-platform/myota-docs/blob/main/docs/seaweedfs-admin-status.md).
 
-The admin UI also exposes **NATS / JetStream** at `/jetstream`. The new
-`myota-operations-service` observes broker metadata without consuming business
-messages, retains samples for seven days in its own `myota_core` table, and
-serves permission-checked APIs through the gateway. Core migration 002 creates
-its table. Collector provisioning scrapes the service and alerts on service
-outages or stalled sample recording (a recorded failure is not a successful
-broker sample). See the
-[status-page guide](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/jetstream-admin-status.md).
-
-Geodata migration 016 enables database-authoritative row state and fences
-obsolete writers. New API/worker images wait for its feature marker before
-accepting work. Build the matching images and follow the
-[coordinated upgrade procedure](https://github.com/myota-platform/myota-docs/blob/main/docs/geodata-phase1-relational-authority.md)
-instead of mixing snapshot-era and row-authoritative writers.
-
-Every HTTP service exposes a Prometheus-compatible `/metrics` endpoint with
-real service-owned aggregates. The OpenTelemetry SDK exports request metrics
-and traces to the collector; the collector scrapes the service endpoints and
-forwards metrics to Prometheus and traces to Tempo. The operations dashboard
+NATS broker and JetStream observability is provided centrally by the cluster-local Surveyor exporter, Prometheus scrape and Grafana folder `NATS`. Operations retains SeaweedFS inspection and Grafana identity, without a broker dependency. See the [NATS observability migration guide](https://github.com/myota-platform/myota-docs/blob/main/docs/observability/nats-surveyor-migration.md).
+The operations dashboard
 includes users, geodata entities, imports, programmes, QSOs, participants,
 awards, workers, queue lag, HTTP errors and OTel latency. The separate
 `MyOTA API performance` dashboard repeats request-rate, p95 latency, 5xx rate,
