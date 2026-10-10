@@ -1,5 +1,14 @@
 {{- define "myota.name" -}}myota{{- end }}
 {{- define "myota.fullname" -}}{{ include "myota.name" . }}-{{ .name }}{{- end }}
+{{- define "myota.imageReference" -}}
+{{- $repository := required "imageReference.repository is required" .repository -}}
+{{- $digest := default "" .digest -}}
+{{- if $digest -}}
+{{- printf "%s@%s" $repository $digest -}}
+{{- else -}}
+{{- printf "%s:%s" $repository (default "latest" .tag) -}}
+{{- end -}}
+{{- end }}
 {{- define "myota.waitForSchema" -}}
 - name: wait-for-schema
   image: {{ .root.Values.migrations.waitImage | quote }}
