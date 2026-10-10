@@ -27,13 +27,17 @@ These fixes are mirrored in `services/` for integrated deployments. See the
 for the legacy push-consumer handoff and cancellation guarantees.
 
 NATS migration Phases 0–4 are complete within their recorded evidence bounds.
-The deploy-owned relays validate bounded fact/work routes and exact provisioned
-durables. Phase 5 Geodata commands now use a separate bounded WorkQueue path in
-source. Helm 183 pre-provisioned `MYOTA_GEODATA_WORK` and its four exact
-durables, but production's Geodata worker still uses the legacy subjects and
-migration 021 is not installed. Do not retire legacy durables until image/schema
-rollout, route checks, failure qualification, and the rollback window pass.
-NATS remains cluster-internal without auth/TLS under the accepted single-tenant
+Phase 5 is in production cutover: the four Geodata work kinds use the
+`MYOTA_GEODATA_WORK` WorkQueue, all four workers subscribe to their exact target
+subjects, and migration 021 is applied. The retry-safe partial-deletion handler
+is deployed on digest-pinned images. No accepted Geodata production work was
+available to process. Four old durable definitions remain empty and inactive
+during the 24-hour rollback observation; the shared `MYOTA_EVENTS` stream and
+Activity notification durable remain active. Final Fleet readiness,
+two-database cross-service failure qualification, cancellation/expiry replay,
+and legacy durable retirement remain open. Keep migration 021 and authoritative
+recovery rows; no obsolete Phase 5 database object was found to purge. NATS
+remains cluster-internal without auth/TLS under the accepted single-tenant
 boundary; off-node recovery is deferred. See the [provisioning runbook](docs/jetstream-topology.md),
 [Phase 5 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase5-geodata-work-2026-10-10.md),
 [migration plan](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/nats-event-migration-plan.md),
