@@ -31,11 +31,13 @@ Phase 5 is in production cutover: the four Geodata work kinds use the
 `MYOTA_GEODATA_WORK` WorkQueue, all four workers subscribe to their exact target
 subjects, and migration 021 is applied. The retry-safe partial-deletion handler
 is deployed on digest-pinned images. No accepted Geodata production work was
-available to process. Four old durable definitions remain empty and inactive
-during the 24-hour rollback observation; the shared `MYOTA_EVENTS` stream and
-Activity notification durable remain active. Final Fleet readiness,
-two-database cross-service failure qualification, cancellation/expiry replay,
-and legacy durable retirement remain open. Keep migration 021 and authoritative
+available to process. Helm revision 192 is deployed; Fleet is Ready=True at
+Deploy commit `6443473828305ab9d02a918bbe990d01abe97f6a` with 60/60 resources. Four old durable definitions
+remain empty and inactive during the rollback observation, anchored at 21:39:22 UTC on 10 October; the shared `MYOTA_EVENTS` stream and
+Activity notification durable remain active. Fleet readiness, two-database cross-service failure qualification,
+cancellation/expiry replay, and the five work-command recovery paths have been
+verified in the recorded isolated run. The 24-hour rollback observation and
+legacy durable retirement remain open. Keep migration 021 and authoritative
 recovery rows; no obsolete Phase 5 database object was found to purge. NATS
 remains cluster-internal without auth/TLS under the accepted single-tenant
 boundary; off-node recovery is deferred. See the [provisioning runbook](docs/jetstream-topology.md),
