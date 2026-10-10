@@ -43,6 +43,37 @@ jobs:
           --set geodataPipeline.importer.enabled=true
           --set geodataPipeline.importer.image=ghcr.io/myota-platform/myota-service:ci
 
+      - name: Render the gated JetStream pre-upgrade readiness barrier
+        run: >-
+          helm template myota deploy/helm/myota
+          --namespace myota
+          --values deploy/helm/myota/values.yaml
+          --set jetstreamProvisioner.enabled=true
+          --set jetstreamProvisioner.confirmedMigrationGate=true
+          --set jetstreamProvisioner.capacity.eventsMaxBytes=1073741824
+          --set jetstreamProvisioner.capacity.eventsMaxMessages=500000
+          --set jetstreamProvisioner.capacity.eventsMaxMessageBytes=1048576
+          --set jetstreamProvisioner.capacity.activityWorkMaxAgeSeconds=2592000
+          --set jetstreamProvisioner.capacity.activityWorkMaxBytes=1073741824
+          --set jetstreamProvisioner.capacity.activityWorkMaxMessages=250000
+          --set jetstreamProvisioner.capacity.activityWorkMaxMessageBytes=1048576
+          --set jetstreamProvisioner.capacity.geodataWorkMaxAgeSeconds=2592000
+          --set jetstreamProvisioner.capacity.geodataWorkMaxBytes=3221225472
+          --set jetstreamProvisioner.capacity.geodataWorkMaxMessages=500000
+          --set jetstreamProvisioner.capacity.geodataWorkMaxMessageBytes=1048576
+          > /tmp/myota-jetstream-preflight.yaml
+
+      - name: Verify JetStream preflight is fail-closed and upgrade-gated
+        run: |
+          grep -q '"helm.sh/hook": pre-upgrade' /tmp/myota-jetstream-preflight.yaml
+          grep -q 'name: myota-jetstream-provisioner' /tmp/myota-jetstream-preflight.yaml
+          grep -q 'name: NATS_TOPOLOGY_APPLY' /tmp/myota-jetstream-preflight.yaml
+          if helm template myota deploy/helm/myota \
+            --set jetstreamProvisioner.enabled=true >/dev/null; then
+            echo 'JetStream provisioner rendered without explicit gate confirmation.' >&2
+            exit 1
+          fi
+
       - name: Render Spainip Fleet release
         run: >-
           helm template myota deploy/helm/myota

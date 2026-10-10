@@ -24,13 +24,13 @@ locks finalization through candidate cleanup. These fixes are mirrored in
 [operations runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#activity-notification-consumer-rollouts)
 for the legacy push-consumer handoff and cancellation guarantees.
 
-The NATS event/work migration is in Phase 1 preparation. NATS remains
-cluster-internal through a ClusterIP service, with no broker auth/TLS requirement
-under the accepted trust decision. The current broker remains on its legacy
-Interest-retained stream; the target contract registry and create-only
-provisioner are not activated on the deployed broker. See the
-[provisioning runbook](docs/jetstream-topology.md), [migration plan](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/nats-event-migration-plan.md),
-and [Phase 1 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase1-contract-topology-2026-10-09.md).
+Phase 1 NATS contract/topology qualification is complete. The current broker
+remains on its legacy mixed Interest-retained stream; the target contract
+registry and create-only provisioner are not activated on it. NATS remains
+cluster-internal without auth/TLS under the accepted single-tenant trust
+boundary, and off-node recovery is deferred. See the [provisioning runbook](docs/jetstream-topology.md),
+[migration plan](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/nats-event-migration-plan.md),
+and [Phase 1 completion evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase1-completion-2026-10-10.md).
 
 The geodata worker also consumes `myota.geodata.entity.location-enrichment.v1`
 through durable consumer `geodata-location-enrichment-v1`. It performs

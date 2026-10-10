@@ -222,6 +222,26 @@ nats:
     enabled: true
     storageSize: 8Gi
     storageClassName: ""
+jetstreamProvisioner:
+  # Remains disabled until the Phase 2 compatibility and cutover gates pass.
+  # When enabled on an upgrade, Helm waits for this fail-closed pre-upgrade
+  # hook before updating application workloads.
+  enabled: false
+  confirmedMigrationGate: false
+  imageRepository: ""
+  imageTag: ""
+  capacity:
+    eventsMaxBytes: ""
+    eventsMaxMessages: ""
+    eventsMaxMessageBytes: ""
+    activityWorkMaxAgeSeconds: ""
+    activityWorkMaxBytes: ""
+    activityWorkMaxMessages: ""
+    activityWorkMaxMessageBytes: ""
+    geodataWorkMaxAgeSeconds: ""
+    geodataWorkMaxBytes: ""
+    geodataWorkMaxMessages: ""
+    geodataWorkMaxMessageBytes: ""
 outbox:
   enabled: true
   maxAttempts: 12
