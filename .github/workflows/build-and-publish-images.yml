@@ -43,4 +43,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/myota-platform/${{ matrix.image }}:latest
+          tags: |
+            ghcr.io/myota-platform/${{ matrix.image }}:latest
+            ghcr.io/myota-platform/${{ matrix.image }}:sha-${{ github.sha }}
