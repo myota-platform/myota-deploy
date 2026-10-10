@@ -23,7 +23,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: provisioner
-          image: "{{ default .Values.image.repository .Values.jetstreamProvisioner.imageRepository }}:{{ default .Values.image.tag .Values.jetstreamProvisioner.imageTag }}"
+          image: {{ include "myota.imageReference" (dict "repository" (default .Values.image.repository .Values.jetstreamProvisioner.imageRepository) "tag" (default .Values.image.tag .Values.jetstreamProvisioner.imageTag) "digest" .Values.imageRollout.digests.platform) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
           command: ["python3", "/app/services/provision_jetstream.py"]
           env:
