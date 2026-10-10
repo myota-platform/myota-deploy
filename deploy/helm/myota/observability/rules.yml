@@ -75,6 +75,34 @@ groups:
         annotations:
           summary: Activity database metrics are unavailable
           description: Activity domain gauges cannot currently be read from PostgreSQL.
+      - alert: MyOTAOutboxRelayMetricsUnavailable
+        expr: up{job="myota-otel-collector", exported_job="myota-outbox"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: An outbox relay metrics endpoint is unavailable
+          description: Check the affected core, activity, or geo relay pod and its database/NATS connectivity.
+      - alert: MyOTAOutboxOldestPendingEvent
+        expr: myota_outbox_oldest_pending_age_seconds{job="myota-otel-collector"} > 120
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: An outbox event is waiting to publish
+          description: Inspect the matching relay's outbox backlog, database connectivity, NATS status, and retry errors.
+      - alert: MyOTAOutboxDeadLetterUnresolved
+        expr: myota_outbox_unresolved_dead_letters{job="myota-otel-collector"} > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: An outbox event needs operator review
+          description: Inspect redacted dead-letter metadata and redrive from the owning database only after the cause is understood.
+      - alert: MyOTAOutboxRetriesSustained
+        expr: sum by (worker) (rate(myota_outbox_retries_total{job="myota-otel-collector"}[5m])) > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: An outbox relay is retrying continuously
+          description: Inspect the relay's database and NATS connectivity, error logs, and oldest pending event before retry exhaustion.
       - alert: MyOTAApiErrorRateHigh
         expr: |
           (

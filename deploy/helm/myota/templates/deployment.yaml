@@ -446,6 +446,24 @@ spec:
               value: {{ $worker | quote }}
             - name: OUTBOX_MAX_ATTEMPTS
               value: {{ $.Values.outbox.maxAttempts | quote }}
+            - name: OUTBOX_MAX_MESSAGE_BYTES
+              value: {{ $.Values.outbox.maxMessageBytes | quote }}
+            - name: OUTBOX_METRICS_PORT
+              value: {{ $.Values.outbox.metricsPort | quote }}
+          ports:
+            - name: metrics
+              containerPort: {{ $.Values.outbox.metricsPort }}
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myota-{{ $worker }}-metrics
+spec:
+  type: ClusterIP
+  selector: {app.kubernetes.io/name: myota, app.kubernetes.io/component: {{ $worker }}}
+  ports:
+    - {name: metrics, port: {{ $.Values.outbox.metricsPort }}, targetPort: metrics}
 ---
 {{- end }}
 {{- end }}

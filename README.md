@@ -12,25 +12,28 @@ This repository owns Compose, Fleet/Helm, migration orchestration and
 observability provisioning. Domain implementations remain in their service
 repositories; `services/` contains synchronized integration copies.
 
-Activity notifications use the durable JetStream pull consumer
+The live Activity notification consumer uses durable
 `activity-notifications-pull-v1`; Helm gives its SIGTERM/drain path 60 seconds.
-The shared `MYOTA_EVENTS` stream uses Interest retention: the outbox relay
-provisions all five durable consumer filters before publishing, and JetStream
-removes a message after every matching consumer acknowledges it. The 30-day
-maximum age remains a backlog safety bound; the stream is not a replay archive.
-Geodata cancellation persists lifecycle fields through the row repository and
-locks finalization through candidate cleanup. These fixes are mirrored in
-`services/` for integrated deployments. See the
+The shared `MYOTA_EVENTS` stream currently uses Interest retention, mixing facts
+with legacy Geodata work. The 30-day maximum age is a backlog safety bound; the
+stream is not a replay archive. Geodata cancellation persists lifecycle fields
+through the row repository and locks finalization through candidate cleanup.
+These fixes are mirrored in `services/` for integrated deployments. See the
 [operations runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#activity-notification-consumer-rollouts)
 for the legacy push-consumer handoff and cancellation guarantees.
 
-Phase 1 NATS contract/topology qualification is complete. The current broker
-remains on its legacy mixed Interest-retained stream; the target contract
-registry and create-only provisioner are not activated on it. NATS remains
-cluster-internal without auth/TLS under the accepted single-tenant trust
-boundary, and off-node recovery is deferred. See the [provisioning runbook](docs/jetstream-topology.md),
+Phase 1 contract/topology and Phase 2 relay hardening are complete within their
+recorded evidence bounds. The relay source routes registered facts through the
+contract registry, enforces stable IDs and serialized-size limits, retries
+publish failures, persists dead letters, and reports per-database backlog and
+health metrics. It validates the existing mixed stream and durables read-only;
+broker topology changes remain deployment-owned. The live broker remains on
+Interest retention and legacy work subjects. NATS remains cluster-internal
+without auth/TLS under the accepted single-tenant trust boundary, and off-node
+recovery is deferred. See the [provisioning runbook](docs/jetstream-topology.md),
 [migration plan](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/nats-event-migration-plan.md),
-and [Phase 1 completion evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase1-completion-2026-10-10.md).
+the [Phase 1 completion evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase1-completion-2026-10-10.md),
+and [Phase 2 relay evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase2-relay-hardening-2026-10-10.md).
 
 The geodata worker also consumes `myota.geodata.entity.location-enrichment.v1`
 through durable consumer `geodata-location-enrichment-v1`. It performs

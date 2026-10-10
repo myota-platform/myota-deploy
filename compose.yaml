@@ -318,31 +318,40 @@ services:
   outbox-core:
     build: .
     restart: unless-stopped
+    expose: ["9108"]
     command: ["python3", "services/outbox_worker.py"]
     environment:
       OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@core-db:5432/myota_core
       MYOTA_REQUIRE_DURABILITY: "1"
       NATS_URL: nats://nats:4222
+      OUTBOX_MAX_MESSAGE_BYTES: 1048576
+      OUTBOX_METRICS_PORT: 9108
       OUTBOX_WORKER: core-outbox
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   outbox-activity:
     build: .
     restart: unless-stopped
+    expose: ["9108"]
     command: ["python3", "services/outbox_worker.py"]
     environment:
       OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@activity-db:5432/myota_activity
       MYOTA_REQUIRE_DURABILITY: "1"
       NATS_URL: nats://nats:4222
+      OUTBOX_MAX_MESSAGE_BYTES: 1048576
+      OUTBOX_METRICS_PORT: 9108
       OUTBOX_WORKER: activity-outbox
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   outbox-geo:
     build: .
     restart: unless-stopped
+    expose: ["9108"]
     command: ["python3", "services/outbox_worker.py"]
     environment:
       OUTBOX_DATABASE_URL: postgresql://myota:myota-dev-only@geo-db:5432/myota_geo
       MYOTA_REQUIRE_DURABILITY: "1"
       NATS_URL: nats://nats:4222
+      OUTBOX_MAX_MESSAGE_BYTES: 1048576
+      OUTBOX_METRICS_PORT: 9108
       OUTBOX_WORKER: geo-outbox
     depends_on: {migrations: {condition: service_completed_successfully}, nats: {condition: service_started}}
   geodata-import-processing:

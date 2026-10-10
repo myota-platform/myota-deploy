@@ -193,12 +193,9 @@ async def run() -> None:
     loop = asyncio.get_running_loop()
     for signal_number in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(signal_number, stop_event.set)
-    try:
-        await js.delete_consumer("MYOTA_EVENTS", "geodata-import-processing")
-        LOG.info("removed the retired push consumer geodata-import-processing")
-    except Exception:
-        # Fresh installs have no legacy push consumer to remove.
-        pass
+    # Durable broker configuration is deployment-owned. Remove this retired
+    # push durable through a reviewed cutover after pending-message disposition
+    # is known; startup must not mutate stream topology.
 
     async def preprocess(event: dict[str, Any]) -> None:
         run_id = event.get("aggregate", {}).get("id") or (
