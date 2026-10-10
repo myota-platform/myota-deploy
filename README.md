@@ -24,9 +24,11 @@ locks finalization through candidate cleanup. These fixes are mirrored in
 [operations runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations.md#activity-notification-consumer-rollouts)
 for the legacy push-consumer handoff and cancellation guarantees.
 
-The NATS event/work migration is in Phase 1 preparation. The current broker
-remains on its legacy Interest-retained stream; the target contract registry and
-create-only provisioner are not activated on the deployed broker. See the
+The NATS event/work migration is in Phase 1 preparation. NATS remains
+cluster-internal through a ClusterIP service, with no broker auth/TLS requirement
+under the accepted trust decision. The current broker remains on its legacy
+Interest-retained stream; the target contract registry and create-only
+provisioner are not activated on the deployed broker. See the
 [provisioning runbook](docs/jetstream-topology.md), [migration plan](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/nats-event-migration-plan.md),
 and [Phase 1 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase1-contract-topology-2026-10-09.md).
 
