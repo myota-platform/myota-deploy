@@ -327,11 +327,11 @@ runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/
 and [Phase 4 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase4-activity-work-2026-10-10.md).
 
 Phase 5 Geodata work source, migration 021, and isolated reliability tests are
-complete within their recorded evidence bounds. Helm revision 191 is deployed;
-Fleet reports Ready=True at `a68eedd5ba7ee8aa0297d14ed8a38c4fceb9f109` with 60/60 resources. First-party
+complete within their recorded evidence bounds. Helm revision 192 is deployed;
+Fleet reports Ready=True at `6443473828305ab9d02a918bbe990d01abe97f6a` with 60/60 resources. First-party
 image references use configured immutable digests, which match live Activity,
 Geodata, and shared-runtime pod IDs. The four target durables are empty with
 active workers; four legacy Geodata durables remain inactive and empty through
-the rollback observation ending no earlier than 21:28:41 UTC on 11 October 2026. Only that observation
-and safe retirement of those four legacy durables remain open. See the
+the rollback observation ending no earlier than 21:39:22 UTC on 11 October 2026.
+Only that observation and safe retirement of those four legacy durables remain open. See the
 [Phase 5 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase5-geodata-work-2026-10-10.md).
