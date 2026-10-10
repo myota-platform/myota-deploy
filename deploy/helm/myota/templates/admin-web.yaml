@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: admin-web
-          image: "{{ .Values.adminWeb.imageRepository }}:{{ default .Values.image.tag .Values.adminWeb.imageTag }}"
+          image: {{ include "myota.imageReference" (dict "repository" .Values.adminWeb.imageRepository "tag" (default .Values.image.tag .Values.adminWeb.imageTag) "digest" .Values.imageRollout.digests.adminWeb) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: MYOTA_GATEWAY_UPSTREAM
