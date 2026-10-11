@@ -1,32 +1,38 @@
 # JetStream topology provisioning
 
-**Status:** Phase 1 contract/topology work is complete. Production activation
-remains disabled until the Phase 2 compatibility and rollout gates pass.
+**Status:** Phase 6 is deployed and complete within its recorded evidence
+bounds. Helm revision 211 uses the one-time migration flag disabled and regular
+topology drift validation enabled. The MyOTA Fleet bundle is Ready=True at
+Deploy main commit `16af2edf6b8e868904f9284e481d971ae7d6d38c`. See the
+[Phase 6 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase6-fact-stream-cutover-2026-10-11.md).
 
 `services/jetstream_topology.py` is the side-effect-free ADR-0008 topology
-definition. `services/provision_jetstream.py` is the single create-only
-provisioner. It defines three target streams and ten work durables, validates
-all configured limits and correctness-sensitive consumer delivery settings,
-and fails on drift. It never edits or deletes an existing stream or consumer.
+definition. `services/provision_jetstream.py` is the single deployment-owned
+provisioner. In ordinary operation it creates missing definitions and fails
+closed on drift. Its narrowly gated one-time Phase 6 migration can update only
+the exact empty legacy `MYOTA_EVENTS` Interest configuration after verifying
+its expected durable and zero counters. It refuses non-empty or unexpected
+state. After migration the flag stays disabled; routine provisioning validates
+the three streams and ten work durables without retention migration.
 The registry-to-topology contract check verifies that all ten work subjects and
 durables match
 [the contracts registry](https://github.com/myota-platform/myota-contracts/blob/main/contracts/event-registry.json).
 The topology tests verify explicit capacity requirements, the apply gate, and
-consumer drift rejection. Do not run this provisioner against the current
-shared MYOTA_EVENTS stream: it has a different subject/retention configuration,
-also contains legacy Geodata work, and requires a separately reviewed
-drain/migration procedure.
+consumer drift rejection. Do not manually enable the migration flag or run an ad hoc broker update. The
+production cutover already removed the legacy Geodata subject capture and
+converted `MYOTA_EVENTS`; any future topology change requires a separately
+reviewed, bounded migration gate.
 
 The selected policy is Limits retention for bounded facts and WorkQueue
 retention for Activity and Geodata commands. Streams use file storage,
 DiscardNew, one replica on the current single-server cluster, finite per-message
-limits, and explicit work durable filters. The 30-day fact window and 1/1/3
-GiB stream byte caps with a 3 GiB reserve on the current 8 GiB PVC are accepted
-conservative initial limits. The observed database sample covers fewer than 10
-days and includes load-test traffic; this evidence limit is accepted for the
-single-node deployment. Do not raise limits without a representative 30-day
-serialized-traffic and outage-backlog review. The script has no numeric defaults
-and requires NATS_TOPOLOGY_APPLY=1 and positive capacity values before connecting.
+limits, and explicit work durable filters. The 30-day fact window and 1/1/3 GiB stream byte caps with a 3 GiB reserve on
+the current 8 GiB PVC are accepted conservative limits for the single-node
+deployment. Production values are Events 1 GiB/500,000 messages/1 MiB,
+Activity work 1 GiB/250,000/1 MiB, and Geodata work 3 GiB/500,000/1 MiB.
+The script has no implicit numeric defaults and requires explicit apply and
+positive capacity values before connecting. Do not raise limits without a
+representative traffic and outage-backlog review.
 
 The deployed broker is unauthenticated and has no TLS, consistent with the
 accepted cluster-internal trust decision. The NATS service is ClusterIP-only on
