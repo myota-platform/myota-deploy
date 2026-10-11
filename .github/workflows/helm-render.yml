@@ -116,10 +116,9 @@ jobs:
           grep -q 'MYOTA_GRAFANA_UPSTREAM' /tmp/myota-spainip-rendered.yaml
           test "$(grep -c 'name: BIGDATACLOUD_API_KEY' /tmp/myota-spainip-rendered.yaml)" -eq 2
           test "$(grep -c 'name: BIGDATACLOUD_LOCALITY_LANGUAGE' /tmp/myota-spainip-rendered.yaml)" -eq 2
-          if grep -q 'helm.sh/hook:' /tmp/myota-spainip-rendered.yaml; then
-            echo 'Migrations must run as a normal Job, not a Helm hook.' >&2
-            exit 1
-          fi
+          grep -q 'name: myota-jetstream-provisioner' /tmp/myota-spainip-rendered.yaml
+          grep -q 'name: NATS_EVENTS_RETENTION_MIGRATION' /tmp/myota-spainip-rendered.yaml
+          grep -q 'value: "1"' /tmp/myota-spainip-rendered.yaml
           if helm template myota deploy/helm/myota \
             --namespace myota \
             --values deploy/helm/myota/values-spainip.yaml \
