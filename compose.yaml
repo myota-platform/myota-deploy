@@ -446,6 +446,48 @@ services:
     depends_on:
       seaweedfs: {condition: service_healthy}
       loki-bucket-init: {condition: service_completed_successfully}
+  postgres-monitor-role-init:
+    image: postgres:16-alpine
+    profiles: [observability]
+    restart: "no"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: |
+      psql --no-password -h core-db -U myota -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+      \\getenv monitor_password MYOTA_PG_CORE_MONITOR_PASSWORD
+      SELECT format('CREATE ROLE myota_observability LOGIN PASSWORD %L', :'monitor_password')
+      WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'myota_observability')
+      \\gexec
+      ALTER ROLE myota_observability LOGIN PASSWORD :'monitor_password';
+      GRANT CONNECT ON DATABASE myota_core TO myota_observability;
+      GRANT SELECT ON pg_catalog.pg_stat_database TO myota_observability;
+      SQL
+      psql --no-password -h activity-db -U myota -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+      \\getenv monitor_password MYOTA_PG_ACTIVITY_MONITOR_PASSWORD
+      SELECT format('CREATE ROLE myota_observability LOGIN PASSWORD %L', :'monitor_password')
+      WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'myota_observability')
+      \\gexec
+      ALTER ROLE myota_observability LOGIN PASSWORD :'monitor_password';
+      GRANT CONNECT ON DATABASE myota_activity TO myota_observability;
+      GRANT SELECT ON pg_catalog.pg_stat_database TO myota_observability;
+      SQL
+      psql --no-password -h geo-db -U myota -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+      \\getenv monitor_password MYOTA_PG_GEO_MONITOR_PASSWORD
+      SELECT format('CREATE ROLE myota_observability LOGIN PASSWORD %L', :'monitor_password')
+      WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'myota_observability')
+      \\gexec
+      ALTER ROLE myota_observability LOGIN PASSWORD :'monitor_password';
+      GRANT CONNECT ON DATABASE myota_geo TO myota_observability;
+      GRANT SELECT ON pg_catalog.pg_stat_database TO myota_observability;
+      SQL
+    environment:
+      PGPASSWORD: myota-dev-only
+      MYOTA_PG_CORE_MONITOR_PASSWORD: ${MYOTA_PG_CORE_MONITOR_PASSWORD:-myota-dev-monitor-core}
+      MYOTA_PG_ACTIVITY_MONITOR_PASSWORD: ${MYOTA_PG_ACTIVITY_MONITOR_PASSWORD:-myota-dev-monitor-activity}
+      MYOTA_PG_GEO_MONITOR_PASSWORD: ${MYOTA_PG_GEO_MONITOR_PASSWORD:-myota-dev-monitor-geo}
+    depends_on:
+      core-db: {condition: service_healthy}
+      activity-db: {condition: service_healthy}
+      geo-db: {condition: service_healthy}
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.135.0
     profiles: [observability]
@@ -453,7 +495,7 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./observability/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
-    depends_on: [gateway, identity, programmes, geodata, activity, tempo, loki]
+    depends_on: [gateway, identity, programmes, geodata, activity, tempo, loki, postgres-monitor-role-init]
   tempo:
     image: grafana/tempo:2.6.1
     profiles: [observability]
@@ -466,6 +508,10 @@ services:
     image: grafana/grafana:11.2.2
     profiles: [observability]
     restart: unless-stopped
+    environment:
+      MYOTA_PG_CORE_MONITOR_PASSWORD: ${MYOTA_PG_CORE_MONITOR_PASSWORD:-myota-dev-monitor-core}
+      MYOTA_PG_ACTIVITY_MONITOR_PASSWORD: ${MYOTA_PG_ACTIVITY_MONITOR_PASSWORD:-myota-dev-monitor-activity}
+      MYOTA_PG_GEO_MONITOR_PASSWORD: ${MYOTA_PG_GEO_MONITOR_PASSWORD:-myota-dev-monitor-geo}
     environment:
       GF_DATE_FORMATS_DEFAULT_TIMEZONE: UTC
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/observability/"
