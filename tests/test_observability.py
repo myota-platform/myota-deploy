@@ -294,6 +294,24 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertIn("db.server.top_query: {enabled: false}", config)
         self.assertNotIn("operations:8005", config)
 
+    def test_operations_runtime_and_schema_are_retired(self):
+        compose = (ROOT / "compose.yaml").read_text()
+        chart_values = (ROOT / "deploy/helm/myota/values.yaml").read_text()
+        chart_deployment = (
+            ROOT / "deploy/helm/myota/templates/deployment.yaml"
+        ).read_text()
+        collector = (ROOT / "observability/otel-collector.yaml").read_text()
+        self.assertNotIn("myota-operations", compose)
+        self.assertNotIn("myota-operations", chart_values)
+        self.assertNotIn("myota-operations", chart_deployment)
+        self.assertNotIn("operations:8005", collector)
+        self.assertTrue(
+            (ROOT / "db/migrations/core/005_retire_jetstream_snapshots.sql").is_file()
+        )
+        self.assertTrue(
+            (ROOT / "db/migrations/core/006_retire_storage_snapshots.sql").is_file()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

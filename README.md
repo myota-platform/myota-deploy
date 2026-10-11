@@ -96,8 +96,8 @@ SeaweedFS monitoring uses the private OpenTelemetry Collector scrape and the
 provisioned Grafana dashboard, an adaptation of
 [Grafana dashboard 19173](https://grafana.com/grafana/dashboards/19173-seaweedfs/).
 The former Admin `/object-storage` bookmark redirects to Grafana. Operations no
-longer samples SeaweedFS or retains its history; bounded PostgreSQL/PostGIS
-telemetry and live Grafana role resolution remain. Core migration 006 removes
+longer samples SeaweedFS or retains its history; OpenTelemetry now collects bounded PostgreSQL/PostGIS metrics, and the Gateway
+resolves Grafana authorization through live Identity data. Core migration 006 removes
 only the retired sample table. Object-storage APIs, application health checks,
 credentials and data remain unchanged. See the
 [SeaweedFS monitoring guide](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/storage/seaweedfs-admin-status.md).
@@ -110,8 +110,8 @@ and refresh every 30 seconds. UI-created dashboards persist on Grafana's PVC;
 source provisioning overwrites UI edits to provisioned dashboards on update.
 See the [storage/admin access guide](https://github.com/myota-platform/myota-docs/blob/main/docs/seaweedfs-admin-status.md).
 
-NATS broker and JetStream observability is provided centrally by the cluster-local Surveyor exporter, Prometheus scrape and Grafana folder `NATS`. Operations does not connect to NATS; it retains PostgreSQL telemetry and Grafana identity resolution. See the [NATS observability migration guide](https://github.com/myota-platform/myota-docs/blob/main/docs/observability/nats-surveyor-migration.md).
-The operations dashboard
+NATS broker and JetStream observability is provided centrally by the cluster-local Surveyor exporter, Prometheus scrape and Grafana folder `NATS`. Operations is retired. PostgreSQL telemetry is collected by the OTel Collector, while the Gateway checks live Identity roles for Grafana access. See the [NATS observability migration guide](https://github.com/myota-platform/myota-docs/blob/main/docs/observability/nats-surveyor-migration.md).
+The service health dashboard
 includes users, geodata entities, imports, programmes, QSOs, participants,
 awards, workers, queue lag, HTTP errors and OTel latency. The separate
 `MyOTA API performance` dashboard repeats request-rate, p95 latency, 5xx rate,
@@ -187,9 +187,8 @@ docker-compose up -d --build
 
 Open <http://127.0.0.1:8090> for administration or
 <http://127.0.0.1:8080> for the participant web/gateway. Domain APIs use
-ports 8001–8004; the read-only operations service uses 8005. Activations and awards
-intentionally share the activity service on port 8004; there is no standalone
-awards port. Use `python3 services/dev_server.py` only as the dependency-free
+ports 8001–8004. Activations and awards intentionally share the activity
+service on port 8004; there is no standalone awards port. Use `python3 services/dev_server.py` only as the dependency-free
 unit-test harness; it is not a durable runtime unless database URLs and
 `MYOTA_REQUIRE_DURABILITY=1` are supplied explicitly.
 
