@@ -90,13 +90,35 @@ def main() -> None:
         parser.error("--interval-seconds must be at least 60")
     logger = logging.getLogger("myota.geodata.import_retention")
     while True:
-        log_event(logger, logging.INFO, "job.started", component="geodata-import-retention", job_type="import-retention")
+        log_event(
+            logger,
+            logging.INFO,
+            "job.started",
+            component="geodata-import-retention",
+            job_type="import-retention",
+        )
         try:
             result = purge_sweep()
         except Exception as exc:
-            log_event(logger, logging.ERROR, "job.failed", component="geodata-import-retention", job_type="import-retention", error_type=type(exc).__name__)
+            log_event(
+                logger,
+                logging.ERROR,
+                "job.failed",
+                component="geodata-import-retention",
+                job_type="import-retention",
+                error_type=type(exc).__name__,
+            )
             raise
-        log_event(logger, logging.INFO, "job.completed", component="geodata-import-retention", job_type="import-retention", purged_count=result["purged"], failed_count=result["failed"], uploads_expired=result.get("uploadsExpired", 0))
+        log_event(
+            logger,
+            logging.INFO,
+            "job.completed",
+            component="geodata-import-retention",
+            job_type="import-retention",
+            purged_count=result["purged"],
+            failed_count=result["failed"],
+            uploads_expired=result.get("uploadsExpired", 0),
+        )
         if not args.loop:
             return
         time.sleep(args.interval_seconds)
