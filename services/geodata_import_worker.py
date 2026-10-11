@@ -108,16 +108,48 @@ async def _consume(
             try:
                 event = json.loads(message.data)
                 event_id, event_type = _event_key(event)
-                correlation_id = event.get("correlationId") or getattr(message, "headers", {}).get("Myota-Correlation-Id")
-                log_event(LOG, logging.INFO, "job.received", component="geodata-import-processing", job_type=event_type, job_id=event_id, event_id=event_id, correlation_id=correlation_id, attempt=message.metadata.num_delivered)
+                correlation_id = event.get("correlationId") or getattr(
+                    message, "headers", {}
+                ).get("Myota-Correlation-Id")
+                log_event(
+                    LOG,
+                    logging.INFO,
+                    "job.received",
+                    component="geodata-import-processing",
+                    job_type=event_type,
+                    job_id=event_id,
+                    event_id=event_id,
+                    correlation_id=correlation_id,
+                    attempt=message.metadata.num_delivered,
+                )
                 if _already_processed(consumer, event_id):
                     await message.ack()
                     continue
-                log_event(LOG, logging.INFO, "job.started", component="geodata-import-processing", job_type=event_type, job_id=event_id, event_id=event_id, correlation_id=correlation_id, attempt=message.metadata.num_delivered)
+                log_event(
+                    LOG,
+                    logging.INFO,
+                    "job.started",
+                    component="geodata-import-processing",
+                    job_type=event_type,
+                    job_id=event_id,
+                    event_id=event_id,
+                    correlation_id=correlation_id,
+                    attempt=message.metadata.num_delivered,
+                )
                 with messaging_span("myota-geodata", message):
                     await _with_ack_heartbeat(message, handler(event))
                 _record_processed(consumer, event)
-                log_event(LOG, logging.INFO, "job.completed", component="geodata-import-processing", job_type=event_type, job_id=event_id, event_id=event_id, correlation_id=correlation_id, attempt=message.metadata.num_delivered)
+                log_event(
+                    LOG,
+                    logging.INFO,
+                    "job.completed",
+                    component="geodata-import-processing",
+                    job_type=event_type,
+                    job_id=event_id,
+                    event_id=event_id,
+                    correlation_id=correlation_id,
+                    attempt=message.metadata.num_delivered,
+                )
                 await message.ack()
             except Exception as error:
                 metadata = message.metadata
@@ -168,11 +200,33 @@ async def _consume(
                                 "WHERE id=%s AND status IN ('QUEUED','PROCESSING')",
                                 (str(error), aggregate_id),
                             )
-                    log_event(LOG, logging.ERROR, "job.failed", component="geodata-import-processing", job_type=event_type, job_id=event_id, event_id=event_id, attempt=metadata.num_delivered, error_type=type(error).__name__, outcome="dead_lettered")
+                    log_event(
+                        LOG,
+                        logging.ERROR,
+                        "job.failed",
+                        component="geodata-import-processing",
+                        job_type=event_type,
+                        job_id=event_id,
+                        event_id=event_id,
+                        attempt=metadata.num_delivered,
+                        error_type=type(error).__name__,
+                        outcome="dead_lettered",
+                    )
                     await message.term()
                 else:
                     retry_delay = min(5 * metadata.num_delivered, 60)
-                    log_event(LOG, logging.WARNING, "job.retry", component="geodata-import-processing", job_type=event_type, job_id=event_id, event_id=event_id, attempt=metadata.num_delivered, retry_delay_seconds=retry_delay, error_type=type(error).__name__)
+                    log_event(
+                        LOG,
+                        logging.WARNING,
+                        "job.retry",
+                        component="geodata-import-processing",
+                        job_type=event_type,
+                        job_id=event_id,
+                        event_id=event_id,
+                        attempt=metadata.num_delivered,
+                        retry_delay_seconds=retry_delay,
+                        error_type=type(error).__name__,
+                    )
                     await message.nak(delay=retry_delay)
     await subscription.unsubscribe()
 
