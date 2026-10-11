@@ -185,6 +185,39 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertIn("folder: K3s", dashboard_provider)
         self.assertIn("myota-k3s-workload.json", helm_template)
 
+    def test_workflow_dashboard_is_chart_provisioned_and_root_mirror_matches(self):
+        dashboard = json.loads(
+            (
+                ROOT
+                / "observability/grafana/dashboards"
+                / "myota-application-workflows.json"
+            ).read_text()
+        )
+        chart_dashboard = json.loads(
+            (
+                ROOT
+                / "deploy/helm/myota/observability/grafana/dashboards"
+                / "myota-application-workflows.json"
+            ).read_text()
+        )
+        self.assertEqual(dashboard, chart_dashboard)
+        expressions = [
+            target.get("expr", "")
+            for panel in dashboard["panels"]
+            for target in panel.get("targets", [])
+        ]
+        self.assertTrue(any("myota_outbox_pending_events" in e for e in expressions))
+        self.assertTrue(any("myota_activity_jobs_total" in e for e in expressions))
+        self.assertTrue(
+            any("myota_geodata_import_queue_depth" in e for e in expressions)
+        )
+        self.assertTrue(
+            any("nats_core_account_jetstream_consumer_count" in e for e in expressions)
+        )
+        self.assertFalse(
+            any("myota_jetstream_consumer_pending" in e for e in expressions)
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
