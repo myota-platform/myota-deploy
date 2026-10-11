@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from myota_logging import configure_logging
+
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer
 import re
@@ -37,30 +39,6 @@ def _utc_timestamp(value: str) -> str:
 class ProgrammeHandler(JsonHandler):
     service = "programme-service"
     store = Store("programmes", "CORE_DATABASE_URL")
-
-    @classmethod
-    def metrics_extra(cls) -> dict[str, float]:
-        with cls.store.lock:
-            programmes = list(cls.store.items.values())
-            catalogue = list(cls._entity_type_catalog().values())
-            assignments = sum(
-                len(cls._assigned_codes(programme)) for programme in programmes
-            )
-        result: dict[str, float] = {
-            "myota_programmes_total": float(len(programmes)),
-            "myota_programme_entity_categories_total": float(len(catalogue)),
-            "myota_programme_category_assignments_total": float(assignments),
-        }
-        for status in ("ACTIVE", "ARCHIVED"):
-            result[
-                f'myota_programmes_by_status_total{{status="{status}"}}'
-            ] = float(
-                sum(
-                    programme.get("status") == status
-                    for programme in programmes
-                )
-            )
-        return result
 
     @staticmethod
     def _authorize_admin(p: dict[str, str], slug: str | None = None) -> None:
@@ -1147,5 +1125,6 @@ def seed() -> None:
 
 
 if __name__ == "__main__":
+    configure_logging("myota-programmes", component="api")
     seed()
     ThreadingHTTPServer(("0.0.0.0", 8002), ProgrammeHandler).serve_forever()

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from myota_logging import configure_logging
+
 import base64
 import os
 from datetime import datetime, timedelta, timezone
@@ -69,10 +71,12 @@ class ActivityHandler(JsonHandler):
     @classmethod
     def metrics_extra(cls) -> dict[str, float]:
         if not cls.repository.durable:
-            return {"myota_activity_metrics_database_unavailable": 1}
+            return {}
         try:
             return cls.repository.metrics()
         except Exception:
+            # Metrics must never make the API unavailable when the database is
+            # restarting or a migration is in progress.
             return {"myota_activity_metrics_database_unavailable": 1}
 
     @staticmethod
@@ -801,16 +805,14 @@ class ActivityHandler(JsonHandler):
     def cascade_delete_entity_resource(
         _: JsonHandler, p: dict[str, str]
     ) -> dict[str, Any]:
-        """Create the activity-side cascade for a geodata deletion job."""
         body = p.get("_body") or {}
-        entity_id = body.get("entityId")
-        if not entity_id:
+        if not body.get("entityId"):
             raise ValueError("entityId is required")
         return ActivityHandler.cascade_delete_entity(
             None,
             {
                 **p,
-                "entityId": str(entity_id),
+                "entityId": str(body["entityId"]),
                 "_body": {"deletedBy": body.get("deletedBy")},
             },
         )
@@ -862,14 +864,6 @@ ActivityHandler.routes = {
     ("GET", "/v1/notifications"): ActivityHandler.list_notifications,
     (
         "GET",
-        "/v1/activations/admin/entities/{entityId}/deletion-impact",
-    ): ActivityHandler.entity_deletion_impact,
-    (
-        "POST",
-        "/v1/activations/admin/entities/{entityId}/cascade-delete",
-    ): ActivityHandler.cascade_delete_entity,
-    (
-        "GET",
         "/v1/activations/entity-deletion-impacts/{entityId}",
     ): ActivityHandler.entity_deletion_impact,
     (
@@ -885,8 +879,6 @@ ActivityHandler.deprecated_routes = {
     ("POST", "/v1/adif/imports"),
     ("POST", "/v1/qso-corrections/{correctionId}/review"),
     ("POST", "/v1/statistics/rebuild"),
-    ("GET", "/v1/activations/admin/entities/{entityId}/deletion-impact"),
-    ("POST", "/v1/activations/admin/entities/{entityId}/cascade-delete"),
 }
 
 AwardsHandler.store = ActivityHandler.store
@@ -894,6 +886,7 @@ AwardsHandler.repository = ActivityHandler.repository
 
 
 if __name__ == "__main__":
+    configure_logging("myota-activity", component="api")
     BoundedThreadingHTTPServer(
         ("0.0.0.0", 8004), ActivityHandler
     ).serve_forever()
