@@ -3,11 +3,11 @@
 # makes digest changes explicit in each pod template.
 imageRollout:
   digests:
-    operations: "sha256:c5f7437839429be8cb79659ee588f67c35d1262f4fc5813c92c4471c621205bc"
+    operations: "sha256:88078ff3aae873aa820ed40c04916e3b9aa4ac106404c1916179a26aeb07bfc8"
     identity: "sha256:f83e409bb34dbfff5d7498d210997eec231ea9a4da8ecf72d45e6b74e1d9b3a1"
     programmes: "sha256:faeaeb8ace108e1f181a6d5638cd34e19e172e5bf6d405aa49850b8c2fca0565"
     geodata: "sha256:35b3ce0dddf7967a102c374ff5d3800352d4b78e77972015a6a6750cb80c7b1f"
     activity: "sha256:75f77dac4b913a6f9d347c8cfcc87686f8c935ed6c7ff462854aafcd6345b622"
-    gateway: "sha256:a0f931de40a851957d4119658ead09e2768ead1cc279802a260459f284bafc08"
-    adminWeb: "sha256:0134f7a6f30edf8aa15ed7f7123c1a2a678767e63f812a59bead3b0414a35023"
-    platform: "sha256:caa952c53beb92000953b8def9d0319cd4aa6bcab9a04eca3cafab44173f2024"
+    gateway: "sha256:cebd69cf7bfde4dbfe65c16dd1d17e9ac25b8f0c9b894797de0dc392f398b6cf"
+    adminWeb: "sha256:95e8279247d61f8395907c57294d4e1102615554766ecff9768ac41f40388fb5"
+    platform: "sha256:b2a71773f4fd4281e3cd55f314ddbd101d5a1a2b22df7a3ac8c0c4cef2ae4ca8"
