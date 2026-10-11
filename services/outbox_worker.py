@@ -206,7 +206,7 @@ async def ensure_stream(nc: NATS) -> None:
     if (
         stream.config.storage != StorageType.FILE
         or stream.config.num_replicas != 1
-        or stream.config.discard != "new"
+        or getattr(stream.config.discard, "value", stream.config.discard) != "new"
         or min(
             stream.config.max_age,
             stream.config.max_bytes,
