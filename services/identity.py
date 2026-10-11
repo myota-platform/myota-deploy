@@ -210,6 +210,61 @@ class IdentityHandler(JsonHandler):
     store = Store("identity", "CORE_DATABASE_URL")
 
     @staticmethod
+    def metrics_text() -> str:
+        accounts = list(IdentityHandler.store.items.values())
+        data = IdentityHandler.store.data
+        credentials = data.get("credentials", {})
+        roles = data.get("roles", {})
+        security_events = data.get("securityEvents", {})
+        now_value = now()
+        lines = [
+            "# HELP myota_identity_users Current account count by bounded participation type.",
+            "# TYPE myota_identity_users gauge",
+        ]
+        for participation_type in ("OPERATOR", "SWL"):
+            count = sum(
+                account.get("participationType") == participation_type
+                for account in accounts
+            )
+            lines.append(
+                f'myota_identity_users{{participation_type="{participation_type}"}} {count}'
+            )
+        lines.extend(
+            [
+                "# HELP myota_identity_callsigns Current callsign records.",
+                "# TYPE myota_identity_callsigns gauge",
+                "myota_identity_callsigns "
+                + str(
+                    sum(
+                        len(account.get("callsigns", []))
+                        for account in accounts
+                    )
+                ),
+                "# HELP myota_identity_roles Current non-revoked role assignments.",
+                "# TYPE myota_identity_roles gauge",
+                "myota_identity_roles "
+                + str(sum(not role.get("validTo") for role in roles.values())),
+                "# HELP myota_identity_security_events Retained security event records.",
+                "# TYPE myota_identity_security_events gauge",
+                f"myota_identity_security_events {len(security_events)}",
+                "# HELP myota_identity_locked_accounts Accounts with an unexpired login lock.",
+                "# TYPE myota_identity_locked_accounts gauge",
+                "myota_identity_locked_accounts "
+                + str(
+                    sum(
+                        bool(
+                            record.get("lockedUntil")
+                            and record["lockedUntil"] > now_value
+                        )
+                        for record in credentials.values()
+                    )
+                ),
+                "",
+            ]
+        )
+        return "\n".join(lines)
+
+    @staticmethod
     def _bucket(name: str) -> dict[str, Any]:
         return IdentityHandler.store.data.setdefault(name, {})
 
