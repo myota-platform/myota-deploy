@@ -580,6 +580,10 @@ async def relay_one(js, claimed: dict) -> None:
             event_type=event_type,
             messaging_system="nats",
             destination=subject,
+            messaging_message_id=event_id,
+            duration_ms=round(
+                (asyncio.get_running_loop().time() - started) * 1000, 3
+            ),
         )
     except Exception as exc:
         PUBLISH_DURATION.labels(WORKER_NAME).observe(
@@ -603,6 +607,12 @@ async def relay_one(js, claimed: dict) -> None:
                 event_type=event_type,
                 attempt=claimed.get("attempts", 0),
                 error_type=type(exc).__name__,
+                messaging_system="nats",
+                messaging_destination=subject,
+                messaging_message_id=event_id,
+                duration_ms=round(
+                    (asyncio.get_running_loop().time() - started) * 1000, 3
+                ),
             )
         except Exception:
             LOG.exception(
