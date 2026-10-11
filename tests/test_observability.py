@@ -123,7 +123,6 @@ class ObservabilityConfigurationTests(unittest.TestCase):
             '.Files.Glob "observability/grafana/**"', deployment_template
         )
 
-
     def test_loki_uses_s3_retention_and_native_otlp_pipeline(self):
         compose_config = (ROOT / "observability" / "loki.yaml").read_text()
         helm_config = (
@@ -150,7 +149,9 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertIn("bucketnames: myota-loki", compose_config)
         self.assertIn(".Values.observability.loki.bucketName", helm_config)
         self.assertIn("retention_period: 336h", compose_config)
-        self.assertIn(".Values.observability.loki.retentionPeriod", helm_config)
+        self.assertIn(
+            ".Values.observability.loki.retentionPeriod", helm_config
+        )
         self.assertIn("endpoint: http://loki:3100/otlp", compose_collector)
         self.assertIn("endpoint: http://myota-loki:3100/otlp", helm_collector)
         self.assertIn("exporters: [otlphttp/loki]", helm_collector)
