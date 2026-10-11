@@ -46,7 +46,7 @@ class ObservabilityConfigurationTests(unittest.TestCase):
                 / "observability"
                 / "grafana"
                 / "dashboards"
-                / "myota-operations.json"
+                / "myota-service-health.json"
             ).read_text()
         )
         expressions = [
@@ -268,10 +268,10 @@ class ObservabilityConfigurationTests(unittest.TestCase):
             for target in panel.get("targets", [])
         ]
         self.assertTrue(
-            any("myota_postgresql_connections" in e for e in expressions)
+            any("postgresql_backends" in e for e in expressions)
         )
         self.assertTrue(
-            any("myota_postgresql_max_connections" in e for e in expressions)
+            any("postgresql_connection_max" in e for e in expressions)
         )
         self.assertTrue(
             any(
@@ -285,7 +285,14 @@ class ObservabilityConfigurationTests(unittest.TestCase):
                 for e in expressions
             )
         )
-        self.assertFalse(any("postgresql_backends" in e for e in expressions))
+        self.assertFalse(any("myota_postgresql_" in e for e in expressions))
+        config = (ROOT / "observability" / "otel-collector.yaml").read_text()
+        for database in ("core", "activity", "geo"):
+            self.assertIn(f"postgresql/{database}:", config)
+        self.assertIn("collection_interval: 30s", config)
+        self.assertIn("db.server.query_sample: {enabled: false}", config)
+        self.assertIn("db.server.top_query: {enabled: false}", config)
+        self.assertNotIn("operations:8005", config)
 
 
 if __name__ == "__main__":
