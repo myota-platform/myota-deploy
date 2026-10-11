@@ -39,19 +39,27 @@ def event_subject(event: dict) -> str:
     explicit_subject = payload.get("natsSubject")
     if work_route:
         if explicit_subject != work_route["subject"]:
-            raise OutboxContractError("legacy work event has an unexpected subject")
+            raise OutboxContractError(
+                "legacy work event has an unexpected subject"
+            )
         target = TARGET_WORK_ROUTES.get(work_route["workType"])
         if target is None:
-            raise OutboxContractError("legacy work route has no target command")
+            raise OutboxContractError(
+                "legacy work route has no target command"
+            )
         return target["subject"]
     if target_route:
         if explicit_subject is not None:
-            raise OutboxContractError("registered work subject cannot be overridden")
+            raise OutboxContractError(
+                "registered work subject cannot be overridden"
+            )
         return target_route["subject"]
     if event_type not in EVENTS:
         raise OutboxContractError("unregistered outbox event type")
     if explicit_subject is not None:
-        raise OutboxContractError("domain fact cannot override its registered subject")
+        raise OutboxContractError(
+            "domain fact cannot override its registered subject"
+        )
     return EVENTS[event_type]["subject"]
 
 
@@ -73,7 +81,9 @@ def _bounded_correlation_id(value: object) -> str | None:
         or not 1 <= len(value) <= 128
         or any(ord(char) < 0x21 or ord(char) > 0x7E for char in value)
     ):
-        raise OutboxContractError("correlation ID must be bounded printable text")
+        raise OutboxContractError(
+            "correlation ID must be bounded printable text"
+        )
     return value
 
 
@@ -93,7 +103,11 @@ def event_envelope(row: tuple) -> dict:
     work_route = LEGACY_WORK_ROUTES.get(event_type)
     target_type = work_route["workType"] if work_route else event_type
     target_route = TARGET_WORK_ROUTES.get(target_type)
-    if event_type not in EVENTS and work_route is None and target_route is None:
+    if (
+        event_type not in EVENTS
+        and work_route is None
+        and target_route is None
+    ):
         raise OutboxContractError("unregistered outbox event type")
     if not isinstance(payload, dict):
         raise OutboxContractError("outbox payload must be an object")
@@ -196,7 +210,9 @@ def event_envelope(row: tuple) -> dict:
                     )
         work_id = command_payload.get(work_id_field)
         if not isinstance(work_id, str) or not UUID_PATTERN.fullmatch(work_id):
-            raise OutboxContractError(f"work payload must carry a UUID {work_id_field}")
+            raise OutboxContractError(
+                f"work payload must carry a UUID {work_id_field}"
+            )
         normalized_work_id = str(UUID(work_id))
         if normalized_work_id != work_id:
             raise OutboxContractError("work ID must use canonical UUID form")

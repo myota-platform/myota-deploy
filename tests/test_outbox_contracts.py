@@ -10,7 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ.setdefault("OUTBOX_DATABASE_URL", "postgresql://test:test@127.0.0.1/test")
+os.environ.setdefault(
+    "OUTBOX_DATABASE_URL", "postgresql://test:test@127.0.0.1/test"
+)
 sys.path.insert(0, str(Path(__file__).parents[1] / "services"))
 
 from outbox_routing import (
@@ -88,7 +90,9 @@ class OutboxContractTests(unittest.TestCase):
             workflow_correlation_id({"correlationId": "flow"}, "fallback"),
             "flow",
         )
-        self.assertEqual(workflow_correlation_id({"workId": "job"}, "fallback"), "job")
+        self.assertEqual(
+            workflow_correlation_id({"workId": "job"}, "fallback"), "job"
+        )
         self.assertEqual(
             workflow_correlation_id({"eventId": "event"}, "fallback"),
             "event",
@@ -116,7 +120,9 @@ class OutboxContractTests(unittest.TestCase):
                 },
             )
         )
-        self.assertEqual(event_subject(work), "myota.work.geodata.entity-delete.v1")
+        self.assertEqual(
+            event_subject(work), "myota.work.geodata.entity-delete.v1"
+        )
         self.assertEqual(event_stream(work), "MYOTA_GEODATA_WORK")
         self.assertEqual(work["workType"], "geodata.entity-delete.v1")
         self.assertEqual(
@@ -159,7 +165,9 @@ class OutboxContractTests(unittest.TestCase):
         )
 
     def test_geodata_work_rejects_missing_reference_field(self):
-        with self.assertRaisesRegex(OutboxContractError, "missing required field"):
+        with self.assertRaisesRegex(
+            OutboxContractError, "missing required field"
+        ):
             event_envelope(
                 row(
                     "geodata.entity.location-enrichment-requested.v1",
@@ -189,7 +197,9 @@ class OutboxContractTests(unittest.TestCase):
                 1,
             )
         )
-        self.assertEqual(event_subject(work), "myota.work.activity.qso-ingestion.v1")
+        self.assertEqual(
+            event_subject(work), "myota.work.activity.qso-ingestion.v1"
+        )
         self.assertEqual(event_stream(work), "MYOTA_ACTIVITY_WORK")
         self.assertEqual(work["workId"], EVENT_ID)
         self.assertEqual(work["workType"], "activity.qso-ingestion.v1")
@@ -241,7 +251,9 @@ class OutboxContractTests(unittest.TestCase):
 
 
 class RelayFailureWindowTests(unittest.IsolatedAsyncioTestCase):
-    async def test_relay_sends_request_correlation_in_envelope_and_header(self):
+    async def test_relay_sends_request_correlation_in_envelope_and_header(
+        self,
+    ):
         js = FakeJetStream()
         event = claimed(correlation_id="workflow-42")
         with patch("outbox_worker.mark_published"):
@@ -305,7 +317,9 @@ class RelayFailureWindowTests(unittest.IsolatedAsyncioTestCase):
     ):
         js = FakeJetStream()
         with (
-            patch("outbox_worker.mark_published", side_effect=OSError("db down")),
+            patch(
+                "outbox_worker.mark_published", side_effect=OSError("db down")
+            ),
             patch("outbox_worker.mark_failed") as failed,
             patch("outbox_worker.LOG") as logger,
         ):
