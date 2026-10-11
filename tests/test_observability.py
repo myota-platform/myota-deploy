@@ -124,5 +124,42 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         )
 
 
+    def test_loki_uses_s3_retention_and_native_otlp_pipeline(self):
+        compose_config = (ROOT / "observability" / "loki.yaml").read_text()
+        helm_config = (
+            ROOT / "deploy/helm/myota/observability/loki.yaml"
+        ).read_text()
+        compose_collector = (
+            ROOT / "observability" / "otel-collector.yaml"
+        ).read_text()
+        helm_collector = (
+            ROOT / "deploy/helm/myota/observability/otel-collector.yaml"
+        ).read_text()
+        helm_template = (
+            ROOT / "deploy/helm/myota/templates/observability.yaml"
+        ).read_text()
+        compose = (ROOT / "compose.yaml").read_text()
+
+        for config in (compose_config, helm_config):
+            self.assertIn("store: tsdb", config)
+            self.assertIn("object_store: s3", config)
+            self.assertIn("retention_enabled: true", config)
+            self.assertIn("delete_request_store: s3", config)
+            self.assertIn("ignore_defaults: true", config)
+            self.assertIn("service.namespace", config)
+        self.assertIn("bucketnames: myota-loki", compose_config)
+        self.assertIn(".Values.observability.loki.bucketName", helm_config)
+        self.assertIn("retention_period: 336h", compose_config)
+        self.assertIn(".Values.observability.loki.retentionPeriod", helm_config)
+        self.assertIn("endpoint: http://loki:3100/otlp", compose_collector)
+        self.assertIn("endpoint: http://myota-loki:3100/otlp", helm_collector)
+        self.assertIn("exporters: [otlphttp/loki]", helm_collector)
+        self.assertIn("loki-data", helm_template)
+        self.assertIn("workingStorageSize", helm_template)
+        self.assertIn("loki-bucket-init", compose)
+        self.assertIn("loki:3100", compose)
+        self.assertIn("loki-data:", compose)
+
+
 if __name__ == "__main__":
     unittest.main()
