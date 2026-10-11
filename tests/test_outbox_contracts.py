@@ -46,7 +46,10 @@ def row(
 
 
 def claimed(
-    event_type="identity.account.created.v1", producer="identity", payload=None
+    event_type="identity.account.created.v1",
+    producer="identity",
+    payload=None,
+    correlation_id=None,
 ):
     values = row(event_type, producer, payload)
     return {
@@ -58,6 +61,7 @@ def claimed(
         "payload": values[5],
         "occurredAt": values[6],
         "attempts": values[7],
+        "correlationId": correlation_id,
     }
 
 
