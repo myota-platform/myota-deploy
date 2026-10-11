@@ -3,11 +3,27 @@
 import unittest
 from unittest.mock import patch
 
-from common import BoundedThreadingHTTPServer, Store
+from common import (
+    BoundedThreadingHTTPServer,
+    Store,
+    bind_correlation_id,
+)
 from otel import telemetry_for
 
 
 class SharedCompatibilityTests(unittest.TestCase):
+    def test_request_correlation_is_bound_to_created_outbox_events(self):
+        store = Store("identity")
+        with bind_correlation_id("request-123"):
+            event = store.event(
+                "identity.account.created.v1",
+                "account",
+                "account-123",
+                {"accountId": "account-123"},
+            )
+        self.assertEqual(event["correlationId"], "request-123")
+        self.assertNotIn("correlationId", event["payload"])
+
     def test_relational_activity_can_disable_compatibility_snapshot(self):
         store = Store("activity", persist_state=False)
         store.dsn = "postgresql://unused"
