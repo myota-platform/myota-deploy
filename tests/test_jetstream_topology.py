@@ -180,7 +180,7 @@ class JetStreamTopologyTests(unittest.TestCase):
 class EventStreamMigrationTests(unittest.IsolatedAsyncioTestCase):
     async def test_migration_is_disabled_without_explicit_gate(self):
         js = SimpleNamespace(stream_info=AsyncMock())
-        stream = desired_topology.__wrapped__ if False else None
+        stream = None
         with patch.dict(os.environ, {}, clear=True):
             await migrate_shared_event_stream(js, stream, ())
         js.stream_info.assert_not_awaited()
