@@ -707,9 +707,7 @@ class JsonHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self) -> None:
         self.request_id, self.correlation_id = (
             self._request_id(),
-            normalize_correlation_id(
-                self.headers.get("X-Correlation-ID")
-            )
+            normalize_correlation_id(self.headers.get("X-Correlation-ID"))
             or new_id(),
         )
         self._request_started_at = time.perf_counter()
@@ -827,25 +825,27 @@ class JsonHandler(BaseHTTPRequestHandler):
                     with bind_correlation_id(self.correlation_id):
                         result = fn(
                             self,
-                        {
-                            **params,
-                            "_body": body,
-                            "_path": self.path,
-                            "Idempotency-Key": self.headers.get(
-                                "Idempotency-Key"
-                            ),
-                            "Authorization": self.headers.get(
-                                "Authorization", ""
-                            ),
-                            "If-Match": self.headers.get("If-Match", ""),
-                            "X-Part-SHA256": self.headers.get(
-                                "X-Part-SHA256", ""
-                            ),
-                            "User-Agent": self.headers.get("User-Agent", ""),
-                            "Remote-Addr": self.client_address[0],
-                            "_http": "1",
-                        },
-                    )
+                            {
+                                **params,
+                                "_body": body,
+                                "_path": self.path,
+                                "Idempotency-Key": self.headers.get(
+                                    "Idempotency-Key"
+                                ),
+                                "Authorization": self.headers.get(
+                                    "Authorization", ""
+                                ),
+                                "If-Match": self.headers.get("If-Match", ""),
+                                "X-Part-SHA256": self.headers.get(
+                                    "X-Part-SHA256", ""
+                                ),
+                                "User-Agent": self.headers.get(
+                                    "User-Agent", ""
+                                ),
+                                "Remote-Addr": self.client_address[0],
+                                "_http": "1",
+                            },
+                        )
                     status = (
                         result.pop("_status", 200)
                         if isinstance(result, dict)
