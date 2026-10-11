@@ -118,7 +118,7 @@ jobs:
           test "$(grep -c 'name: BIGDATACLOUD_LOCALITY_LANGUAGE' /tmp/myota-spainip-rendered.yaml)" -eq 2
           grep -q 'name: myota-jetstream-provisioner' /tmp/myota-spainip-rendered.yaml
           grep -q 'name: NATS_EVENTS_RETENTION_MIGRATION' /tmp/myota-spainip-rendered.yaml
-          grep -q 'value: "1"' /tmp/myota-spainip-rendered.yaml
+          grep -q 'value: "0"' /tmp/myota-spainip-rendered.yaml
           if helm template myota deploy/helm/myota \
             --namespace myota \
             --values deploy/helm/myota/values-spainip.yaml \
