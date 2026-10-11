@@ -59,13 +59,20 @@ postgres:
   geoDatabase: myota_geo
   existingSecret: myota-postgres
 
-# Phase 5 provisions only Geodata's dedicated WorkQueue stream and its four
-# registered durables. Existing Activity work remains independent.
+# Phase 6 performs the guarded, empty-stream MYOTA_EVENTS retention cutover.
 jetstreamProvisioner:
   enabled: true
   confirmedMigrationGate: true
-  scope: geodata-work
+  migrateEventsStream: true
+  scope: all
   capacity:
+    eventsMaxBytes: "1073741824"
+    eventsMaxMessages: "500000"
+    eventsMaxMessageBytes: "1048576"
+    activityWorkMaxAgeSeconds: "2592000"
+    activityWorkMaxBytes: "1073741824"
+    activityWorkMaxMessages: "250000"
+    activityWorkMaxMessageBytes: "1048576"
     geodataWorkMaxAgeSeconds: "2592000"
     geodataWorkMaxBytes: "3221225472"
     geodataWorkMaxMessages: "500000"
