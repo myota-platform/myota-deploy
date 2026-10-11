@@ -223,6 +223,13 @@ class OutboxContractTests(unittest.TestCase):
                 }
             )
 
+    def test_correlation_is_bounded_and_kept_out_of_payload(self):
+        event = event_envelope((*row(), "workflow-42"))
+        self.assertEqual(event["correlationId"], "workflow-42")
+        self.assertNotIn("correlationId", event["payload"])
+        with self.assertRaisesRegex(OutboxContractError, "correlation ID"):
+            event_envelope((*row(), "x" * 129))
+
     def test_registered_producer_is_required(self):
         with self.assertRaisesRegex(OutboxContractError, "producer"):
             event_envelope(row(producer="programme-service"))
@@ -240,6 +247,15 @@ class OutboxContractTests(unittest.TestCase):
 
 
 class RelayFailureWindowTests(unittest.IsolatedAsyncioTestCase):
+    async def test_relay_sends_request_correlation_in_envelope_and_header(self):
+        js = FakeJetStream()
+        event = claimed(correlation_id="workflow-42")
+        with patch("outbox_worker.mark_published"):
+            await relay_one(js, event)
+        _, body, headers, _ = js.published[0]
+        self.assertEqual(json.loads(body)["correlationId"], "workflow-42")
+        self.assertEqual(headers["Myota-Correlation-Id"], "workflow-42")
+
     async def test_same_id_is_sent_and_marked_only_after_broker_ack(self):
         js = FakeJetStream()
         event = claimed()
