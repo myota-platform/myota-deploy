@@ -2,8 +2,8 @@
 
 **Status:** Phase 6 is deployed and complete within its recorded evidence
 bounds. Helm revision 211 uses the one-time migration flag disabled and regular
-topology drift validation enabled. The MyOTA Fleet bundle is Ready=True at
-Deploy main commit `16af2edf6b8e868904f9284e481d971ae7d6d38c`. See the
+topology drift validation enabled. The MyOTA Fleet bundle is Ready=True for the latest applied Deploy main
+commit. See the
 [Phase 6 evidence](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/messaging/evidence/phase6-fact-stream-cutover-2026-10-11.md).
 
 `services/jetstream_topology.py` is the side-effect-free ADR-0008 topology
