@@ -161,6 +161,43 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertIn("loki:3100", compose)
         self.assertIn("loki-data:", compose)
 
+    def test_k3s_dashboard_and_scrapes_are_internal_and_least_privilege(self):
+        dashboard = json.loads(
+            (
+                ROOT
+                / "deploy/helm/myota/observability/grafana/dashboards"
+                / "myota-k3s-workload.json"
+            ).read_text()
+        )
+        helm_template = (
+            ROOT / "deploy/helm/myota/templates/observability.yaml"
+        ).read_text()
+        prom_config = (
+            ROOT / "deploy/helm/myota/observability/prometheus.yml"
+        ).read_text()
+        dashboard_provider = (
+            ROOT
+            / "deploy/helm/myota/observability/grafana/provisioning"
+            / "dashboards/dashboards.yml"
+        ).read_text()
+
+        self.assertEqual(dashboard["time"], {"from": "now-30m", "to": "now"})
+        self.assertEqual(dashboard["refresh"], "30s")
+        self.assertEqual(dashboard["timezone"], "utc")
+        self.assertIn("kube_deployment_status_replicas_available", json.dumps(dashboard))
+        self.assertIn("kube_pod_container_status_restarts_total", json.dumps(dashboard))
+        self.assertIn("pod_cpu_usage_seconds_total", json.dumps(dashboard))
+        self.assertIn("kubelet_volume_stats_available_bytes", json.dumps(dashboard))
+        self.assertIn("kube-state-metrics", prom_config)
+        self.assertIn("scrape_interval: 30s", prom_config)
+        self.assertIn('resources: ["nodes/metrics"]', helm_template)
+        self.assertNotIn("nodes/proxy", helm_template)
+        self.assertNotIn("insecure_skip_verify", prom_config)
+        self.assertIn('regex: "(pod_cpu_usage_seconds_total|pod_memory_working_set_bytes);myota"', prom_config)
+        self.assertIn('regex: "(kubelet_volume_stats_available_bytes|kubelet_volume_stats_capacity_bytes);myota"', prom_config)
+        self.assertIn("folder: K3s", dashboard_provider)
+        self.assertIn("myota-k3s-workload.json", helm_template)
+
 
 if __name__ == "__main__":
     unittest.main()
