@@ -108,8 +108,8 @@ async def _consume(
             try:
                 event = json.loads(message.data)
                 event_id, event_type = _event_key(event)
-                correlation_id = event.get("correlationId") or getattr(
-                    message, "headers", {}
+                correlation_id = event.get("correlationId") or (
+                    getattr(message, "headers", None) or {}
                 ).get("Myota-Correlation-Id")
                 log_event(
                     LOG,
