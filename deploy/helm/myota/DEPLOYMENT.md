@@ -1,14 +1,14 @@
 # Deploy MyOTA with Rancher Fleet on K3s
 
-The Admin UI includes **Platform health → SeaweedFS storage** at
-`/object-storage`, backed by the operations service. Health/metrics endpoints
-can be overridden with `services.operations.storageHealthUrl` and
-`services.operations.storageMetricsUrl`; empty values use the chart's private
-SeaweedFS service. `services.identity.internalUrl` supplies live session/role
-checks. Core migration 003 adds sampled storage history; no new Secret is needed.
-Grafana maps current GLOBAL_OPERATOR/GLOBAL_ADMIN users to Editor and other
-authorized readers to Viewer. Provisioned dashboards default to the last
-30 minutes with 30-second refresh; see the [storage access runbook](https://github.com/myota-platform/myota-docs/blob/main/docs/seaweedfs-admin-status.md).
+SeaweedFS monitoring uses the private OpenTelemetry Collector scrape and the
+provisioned Grafana dashboard at `/observability/d/myota-object-storage`, a
+version-controlled adaptation of Grafana Labs dashboard 19173. The former
+Admin storage page and Operations sampler/API/history are retired. Operations
+continues to collect bounded PostgreSQL/PostGIS statistics and resolve current
+Grafana roles. Forward migration `db/migrations/core/006_retire_storage_snapshots.sql`
+drops only the retired sample table. The legacy Admin bookmark redirects to
+Grafana; storage APIs and application health checks remain unchanged. See the
+[SeaweedFS monitoring guide](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/storage/seaweedfs-admin-status.md).
 
 This chart targets the cluster managed by Rancher at `https://rancher.spainip.es`
 and uses the cluster's Traefik ingress controller. Configure the public/API
@@ -163,9 +163,11 @@ the route templates registered by the service (for example,
 `/v1/geodata/entities/{entityId}`), not raw URL paths containing entity or
 import UUIDs. The Collector scrapes SeaweedFS's built-in master and S3 metrics
 listener on the internal-only port 9324 by default. That endpoint exposes both
-master and S3 request metrics. The **MyOTA Object Storage** dashboard shows S3
-request rate, server-side p50/p95/p99 processing time, non-2xx responses, and
-in-flight uploads. The port is configurable under `seaweedfs.metricsPort`; do
+master and S3 request metrics. The **SeaweedFS** dashboard adapts upstream
+dashboard 19173 and shows scrape reachability, supported S3 request rates,
+latency, errors, in-flight uploads, reported bucket sizes, filesystem capacity,
+and filer/volume request metrics. Missing series remain unavailable or gaps;
+they are not zero. The port is configurable under `seaweedfs.metricsPort`; do
 not expose it through an Ingress or public Service.
 The Collector pod template includes a checksum of its scrape configuration,
 so Fleet changes to the ConfigMap automatically roll the Collector and activate
