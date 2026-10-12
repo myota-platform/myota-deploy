@@ -48,7 +48,8 @@ groups:
         for: 5m
         annotations:
           summary: MyOTA API 5xx error rate is high
-          runbook_url: "https://github.com/myota-platform/myota-docs/blob/main/docs/observability/logging-runbook.md#alert-response"          description: The local Prometheus-backed API error rate is above 5%.
+          runbook_url: "https://github.com/myota-platform/myota-docs/blob/main/docs/observability/logging-runbook.md#alert-response"
+          description: The local Prometheus-backed API error rate is above 5%.
         labels: {severity: warning, source: grafana}
       - uid: myota-grafana-api-latency
         title: MyOTA API p95 latency
@@ -93,5 +94,6 @@ groups:
         for: 10m
         annotations:
           summary: MyOTA API p95 latency is high
-          runbook_url: "https://github.com/myota-platform/myota-docs/blob/main/docs/observability/logging-runbook.md#alert-response"          description: The local Prometheus-backed API p95 response time is above one second.
+          runbook_url: "https://github.com/myota-platform/myota-docs/blob/main/docs/observability/logging-runbook.md#alert-response"
+          description: The local Prometheus-backed API p95 response time is above one second.
         labels: {severity: warning, source: grafana}
