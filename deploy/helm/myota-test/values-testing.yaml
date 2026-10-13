@@ -23,7 +23,7 @@ myota:
       imageTag: testing
       replicas: 1
   ingress:
-    enabled: false
+    enabled: true
     provider: traefik
     className: traefik
     host: api.test.myota.top
