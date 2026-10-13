@@ -66,6 +66,7 @@ common_excludes=(
 geo_excludes=(
   "${common_excludes[@]}"
   --exclude-table-data=public.entity_type
+  --exclude-table-data=public.geodata_schema_feature
   --exclude-table-data=public.spatial_ref_sys
 )
 
