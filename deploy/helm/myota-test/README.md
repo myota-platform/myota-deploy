@@ -25,7 +25,8 @@ location enrichment and production load-test cleanup are disabled.
    independent from the services in namespace `myota`.
 4. Copy current relational domain data from the live databases into the
    migrated test databases. Preserve the target migration ledger, seeded
-   PostGIS reference tables, and `entity_type` catalog. Do not copy outbox
+   PostGIS reference tables, the `entity_type` catalog, and target-seeded
+   `geodata_schema_feature` markers. Do not copy outbox
    delivery state, JetStream messages, consumer checkpoints, sessions,
    recovery tokens, or observability data; those are environment-specific and
    JetStream is not the durable domain archive. Each completed database gets
