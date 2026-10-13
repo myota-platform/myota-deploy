@@ -17,6 +17,8 @@ from provision_jetstream import (
 )
 
 
+ROOT = Path(__file__).parents[1]
+
 CAPACITY = {
     "NATS_EVENTS_MAX_BYTES": "1048576",
     "NATS_EVENTS_MAX_MESSAGES": "1000",
@@ -37,6 +39,13 @@ class JetStreamTopologyTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaisesRegex(ValueError, "must be set"):
                 desired_topology()
+
+    def test_jetstream_provisioner_runs_on_fresh_install(self):
+        template = (
+            ROOT / "deploy/helm/myota/templates/jetstream-provisioner.yaml"
+        ).read_text()
+        self.assertNotIn('"helm.sh/hook"', template)
+        self.assertIn("backoffLimit: 10", template)
 
     def test_apply_requires_explicit_operator_opt_in(self):
         with patch.dict(os.environ, CAPACITY, clear=True):
