@@ -29,6 +29,16 @@ class ObservabilityConfigurationTests(unittest.TestCase):
             self.assertEqual(dashboard["timezone"], "utc")
             self.assertIsInstance(dashboard["editable"], bool)
 
+    def test_postgres_monitor_role_job_does_not_block_fresh_install(self):
+        template = (
+            ROOT / "deploy/helm/myota/templates/observability.yaml"
+        ).read_text()
+        start = template.index('"postgres-monitor-role"')
+        end = template.index("---", start)
+        role_job = template[start:end]
+        self.assertNotIn('"helm.sh/hook"', role_job)
+        self.assertIn("activeDeadlineSeconds: 900", role_job)
+
     def test_prometheus_uses_collector_boundary(self):
         config = (ROOT / "observability" / "prometheus.yml").read_text()
         self.assertIn("otel-collector:8889", config)
