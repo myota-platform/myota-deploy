@@ -9,7 +9,7 @@ kubectl get namespace "$source_namespace" >/dev/null
 kubectl get namespace "$target_namespace" >/dev/null
 
 if [[ -n "$(kubectl get namespace "$target_namespace" -o json | jq -r --arg key "$seed_marker" '.metadata.annotations[$key] // ""')" ]]; then
-  echo "Refusing to overwrite a test namespace already marked as seeded." >&2
+  echo "Relational seed already completed for this namespace." >&2
   exit 1
 fi
 
@@ -60,11 +60,21 @@ copy_database() {
   local source_statefulset="$2"
   local target_statefulset="$3"
   shift 3
+  local database_marker="myota.dev/live-data-seed-$database"
+  local completed
+  completed="$(kubectl get namespace "$target_namespace" -o json \
+    | jq -r --arg key "$database_marker" '.metadata.annotations[$key] // ""')"
+  if [[ "$completed" == "complete" ]]; then
+    echo "Skipping already copied database $database"
+    return
+  fi
+
   echo "Copying relational domain rows for $database"
   kubectl exec -n "$source_namespace" "statefulset/$source_statefulset" -- \
     sh -ec 'database="$1"; shift; pg_dump -U "$POSTGRES_USER" -d "$database" -Fc --data-only "$@"' sh "$database" "$@" \
     | kubectl exec -i -n "$target_namespace" "statefulset/$target_statefulset" -- \
       sh -ec 'pg_restore -U "$POSTGRES_USER" -d "$1" --data-only --disable-triggers --single-transaction --no-owner -' sh "$database"
+  kubectl annotate namespace "$target_namespace" "$database_marker=complete" --overwrite=false
 }
 
 copy_database myota_core myota-core-postgres myota-core-postgres "${common_excludes[@]}"
