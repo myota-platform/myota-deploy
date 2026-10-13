@@ -8,9 +8,7 @@ on:
       - "deploy/helm/**"
       - ".github/workflows/helm-render.yml"
   pull_request:
-    paths:
-      - "deploy/helm/**"
-      - ".github/workflows/helm-render.yml"
+    branches: [main, testing]
 
 permissions:
   contents: read
