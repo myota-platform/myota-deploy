@@ -102,12 +102,12 @@
       },
       "targets": [
         {
-          "expr": "kube_deployment_spec_replicas{namespace=\"myota\"}",
+          "expr": "kube_deployment_spec_replicas{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{deployment}} desired",
           "refId": "A"
         },
         {
-          "expr": "kube_deployment_status_replicas_available{namespace=\"myota\"}",
+          "expr": "kube_deployment_status_replicas_available{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{deployment}} available",
           "refId": "B"
         }
@@ -135,12 +135,12 @@
       },
       "targets": [
         {
-          "expr": "kube_statefulset_replicas{namespace=\"myota\"}",
+          "expr": "kube_statefulset_replicas{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{statefulset}} desired",
           "refId": "A"
         },
         {
-          "expr": "kube_statefulset_status_replicas_ready{namespace=\"myota\"}",
+          "expr": "kube_statefulset_status_replicas_ready{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{statefulset}} ready",
           "refId": "B"
         }
@@ -169,7 +169,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"myota\"}[15m]))",
+          "expr": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"{{MYOTA_NAMESPACE}}\"}[15m]))",
           "legendFormat": "{{pod}}",
           "refId": "A"
         }
@@ -198,22 +198,22 @@
       },
       "targets": [
         {
-          "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"myota\"}",
+          "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{horizontalpodautoscaler}} current",
           "refId": "A"
         },
         {
-          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"myota\"}",
+          "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{horizontalpodautoscaler}} desired",
           "refId": "B"
         },
         {
-          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"myota\"}",
+          "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{horizontalpodautoscaler}} min",
           "refId": "C"
         },
         {
-          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"myota\"}",
+          "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"{{MYOTA_NAMESPACE}}\"}",
           "legendFormat": "{{horizontalpodautoscaler}} max",
           "refId": "D"
         }
@@ -242,12 +242,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (pod) (rate(pod_cpu_usage_seconds_total{namespace=\"myota\"}[5m]))",
+          "expr": "sum by (pod) (rate(pod_cpu_usage_seconds_total{namespace=\"{{MYOTA_NAMESPACE}}\"}[5m]))",
           "legendFormat": "{{pod}} used",
           "refId": "A"
         },
         {
-          "expr": "sum by (pod) (kube_pod_container_resource_requests{namespace=\"myota\",resource=\"cpu\",unit=\"core\"})",
+          "expr": "sum by (pod) (kube_pod_container_resource_requests{namespace=\"{{MYOTA_NAMESPACE}}\",resource=\"cpu\",unit=\"core\"})",
           "legendFormat": "{{pod}} requested",
           "refId": "B"
         }
@@ -276,12 +276,12 @@
       },
       "targets": [
         {
-          "expr": "sum by (pod) (pod_memory_working_set_bytes{namespace=\"myota\"})",
+          "expr": "sum by (pod) (pod_memory_working_set_bytes{namespace=\"{{MYOTA_NAMESPACE}}\"})",
           "legendFormat": "{{pod}} used",
           "refId": "A"
         },
         {
-          "expr": "sum by (pod) (kube_pod_container_resource_requests{namespace=\"myota\",resource=\"memory\",unit=\"byte\"})",
+          "expr": "sum by (pod) (kube_pod_container_resource_requests{namespace=\"{{MYOTA_NAMESPACE}}\",resource=\"memory\",unit=\"byte\"})",
           "legendFormat": "{{pod}} requested",
           "refId": "B"
         }
@@ -312,7 +312,7 @@
       },
       "targets": [
         {
-          "expr": "100 * (1 - kubelet_volume_stats_available_bytes{namespace=\"myota\"} / kubelet_volume_stats_capacity_bytes{namespace=\"myota\"})",
+          "expr": "100 * (1 - kubelet_volume_stats_available_bytes{namespace=\"{{MYOTA_NAMESPACE}}\"} / kubelet_volume_stats_capacity_bytes{namespace=\"{{MYOTA_NAMESPACE}}\"})",
           "legendFormat": "{{persistentvolumeclaim}}",
           "refId": "A"
         }

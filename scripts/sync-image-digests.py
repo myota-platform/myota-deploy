@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Record the current digest behind each production :latest image tag."""
+"""Record digests behind production :latest or test :testing image tags."""
 
 from __future__ import annotations
 
+import argparse
 import re
 import subprocess
 from pathlib import Path
@@ -19,11 +20,22 @@ IMAGES = {
     "adminWeb": "ghcr.io/myota-platform/myota-admin-web:latest",
     "platform": "ghcr.io/myota-platform/myota-service:latest",
 }
+TEST_VALUES = ROOT / "deploy/helm/myota-test/values-image-digests-testing.yaml"
+TEST_IMAGES = {
+    key: image.rsplit(":", 1)[0] + ":testing" for key, image in IMAGES.items()
+}
+TEST_IMAGES["web"] = "ghcr.io/myota-platform/myota-web:testing"
 
 
 def main() -> None:
-    contents = VALUES.read_text(encoding="utf-8")
-    for key, image in IMAGES.items():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tag", choices=("latest", "testing"), default="latest")
+    args = parser.parse_args()
+    output = TEST_VALUES if args.tag == "testing" else VALUES
+    images = TEST_IMAGES if args.tag == "testing" else IMAGES
+    contents = output.read_text(encoding="utf-8")
+    indent = "      " if args.tag == "testing" else "    "
+    for key, image in images.items():
         digest = subprocess.check_output(
             ["crane", "digest", image], text=True, stderr=subprocess.STDOUT
         ).strip()
@@ -31,14 +43,16 @@ def main() -> None:
             raise SystemExit(
                 f"Unexpected digest returned for {image}: {digest!r}"
             )
-        pattern = re.compile(rf"(?m)^(    {re.escape(key)}:\s*)\"[^\"]*\"$")
+        pattern = re.compile(
+            rf"(?m)^({re.escape(indent + key)}:\s*)\"[^\"]*\"$"
+        )
         contents, count = pattern.subn(rf'\g<1>"{digest}"', contents)
         if count != 1:
             raise SystemExit(
-                f"Expected exactly one imageRollout.digests.{key} entry; found {count}"
+                f"Expected exactly one {args.tag} imageRollout.digests.{key} entry; found {count}"
             )
         print(f"{key}: {digest}")
-    VALUES.write_text(contents, encoding="utf-8")
+    output.write_text(contents, encoding="utf-8")
 
 
 if __name__ == "__main__":

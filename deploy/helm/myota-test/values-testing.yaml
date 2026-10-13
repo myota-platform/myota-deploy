@@ -1,0 +1,99 @@
+myota:
+  image:
+    repository: ghcr.io/myota-platform/myota-service
+    tag: testing
+    pullPolicy: Always
+  gateway:
+    imageTag: testing
+  adminWeb:
+    enabled: true
+    imageTag: testing
+  web:
+    enabled: true
+    imageTag: testing
+  services:
+    identity:
+      imageTag: testing
+    programmes:
+      imageTag: testing
+    geodata:
+      imageTag: testing
+      replicas: 1
+    activity:
+      imageTag: testing
+      replicas: 1
+  ingress:
+    enabled: false
+    provider: traefik
+    className: traefik
+    host: api.test.myota.top
+    adminHost: admin.test.myota.top
+    webHost: test.myota.top
+    entryPoints: [websecure]
+    tls:
+      enabled: true
+      certResolver: acmeresolver
+    adminTls:
+      enabled: true
+      certResolver: acmeresolver
+  postgres:
+    enabled: true
+    coreStorageSize: 5Gi
+    activityStorageSize: 10Gi
+    geoStorageSize: 10Gi
+  seaweedfs:
+    enabled: true
+    storageSize: 20Gi
+  nats:
+    persistence:
+      enabled: true
+      storageSize: 2Gi
+  observability:
+    enabled: true
+    prometheus:
+      storageSize: 3Gi
+      retention: 7d
+    alertmanager:
+      storageSize: 512Mi
+    grafana:
+      storageSize: 1Gi
+    tempo:
+      storageSize: 3Gi
+    loki:
+      workingStorageSize: 2Gi
+  auth:
+    environment: test
+    existingSecret: myota-auth
+    maintenanceEnabled: true
+  geodataLoadTestCleanup:
+    enabled: false
+    allowProductionCleanup: false
+  geodataPipeline:
+    locationEnrichment:
+      enabled: false
+  activityWorkers:
+    enabled: true
+    replicas: 1
+    legacyReconciliationEnabled: false
+  activityNotifications:
+    enabled: true
+    replicas: 1
+  geodataImportProcessing:
+    replicas: 1
+    maxReplicas: 1
+  jetstreamProvisioner:
+    enabled: true
+    confirmedMigrationGate: true
+    scope: all
+    capacity:
+      eventsMaxBytes: "536870912"
+      eventsMaxMessages: "100000"
+      eventsMaxMessageBytes: "1048576"
+      activityWorkMaxAgeSeconds: "604800"
+      activityWorkMaxBytes: "536870912"
+      activityWorkMaxMessages: "100000"
+      activityWorkMaxMessageBytes: "1048576"
+      geodataWorkMaxAgeSeconds: "604800"
+      geodataWorkMaxBytes: "536870912"
+      geodataWorkMaxMessages: "100000"
+      geodataWorkMaxMessageBytes: "1048576"
