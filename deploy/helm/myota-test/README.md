@@ -3,9 +3,11 @@
 This Fleet bundle deploys the shared MyOTA chart into `myota-test` using the
 mutable GHCR `testing` tags. The chart digest file records the resolved image
 digests, so a changed tag changes the pod template and causes a Kubernetes
-rollout. The scheduled digest workflow proposes each update as a PR to the
-protected `testing` branch and dispatches the required checks before enabling
-auto-merge.
+rollout. A digest updater workflow is defined on `testing`; it proposes each
+update as a protected-branch PR and dispatches the required checks before
+auto-merge. GitHub schedules execute from the default branch, so this updater
+is not active until safely released onto `main`. Fleet automatically
+reconciles committed test values.
 
 The test namespace owns independent PostgreSQL databases, JetStream, SeaweedFS,
 and observability storage. Application workloads do not point at the live
@@ -37,13 +39,14 @@ location enrichment and production load-test cleanup are disabled.
    `myota-award-signatures`, `myota-certificates`, `myota-adif`, and
    `myota-geodata-imports`) into test SeaweedFS. Do not copy Loki objects.
    Verify object counts and bytes before exposing the test hostnames.
-6. Enable test ingress through a change to `values-testing.yaml` merged into
-   the protected `testing` branch.
-   Fleet then publishes `api.test.myota.top`, `admin.test.myota.top`, and
+6. The initial data seed is complete. Ingress was enabled through merged test
+   branch PRs. Fleet serves `api.test.myota.top`, `admin.test.myota.top`, and
    `test.myota.top`; the participant Web UI routes `/v1` to the test API
    gateway and other paths to the test Web deployment.
-7. Verify ACME certificates, admin login, participant UI, API reads, object
-   reads, and that no test pod connects to a live namespace endpoint.
+7. Deployment verification on 2026-10-13 confirmed all test workloads Ready,
+   HTTP 200 and trusted ACME TLS for the Admin and participant UIs, and a
+   matching live/test inventory for the copied Geodata import bucket. See the
+   [central test deployment record](https://github.com/myota-platform/myota-docs/blob/main/docs/operations/test-deployment.md).
 
 The copy is a one-time initial seed, not continuous production-to-test
 replication. Keep source credentials out of the test namespace after the copy.
@@ -119,13 +122,15 @@ databases on retry.
 
 ## Runtime requirements
 
-The test image digest workflow runs from the default branch every five minutes.
-It checks GHCR `testing` tags for the platform runtime, gateway, Identity,
-Programme, Geodata, Activity, Admin Web, and Web images. For a changed digest,
-it opens or updates a PR to `testing`, dispatches the branch's Python, runtime
-image, and Helm checks, and enables auto-merge subject to branch protection.
-Fleet watches `testing` and reconciles the resulting digest change. A failed
-check leaves the PR open and the currently deployed image unchanged.
+The test image digest workflow checks GHCR `testing` tags for the platform
+runtime, gateway, Identity, Programme, Geodata, Activity, Admin Web, and Web
+images. For a changed digest, it opens or updates a PR to `testing`, dispatches
+the branch's Python, runtime image, and Helm checks, and enables auto-merge
+subject to branch protection. This workflow is currently present on `testing`
+but its schedule is inactive until the workflow is released onto default branch
+`main`; publishing a new tag alone does not yet update this test release. Once
+active, Fleet watches `testing` and reconciles the merged digest change. A
+failed check leaves the PR open and the currently deployed image unchanged.
 
 Production values remain in `deploy/helm/myota`; this wrapper is a separate
 Helm release and leaves the production namespace and PVCs untouched.
