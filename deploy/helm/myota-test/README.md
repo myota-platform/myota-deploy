@@ -28,7 +28,10 @@ location enrichment and production load-test cleanup are disabled.
    PostGIS reference tables, and `entity_type` catalog. Do not copy outbox
    delivery state, JetStream messages, consumer checkpoints, sessions,
    recovery tokens, or observability data; those are environment-specific and
-   JetStream is not the durable domain archive.
+   JetStream is not the durable domain archive. Each completed database gets
+   its own namespace marker, so a later invocation skips databases that
+   already copied successfully. A failed unmarked database copy is atomic;
+   inspect that test database before retrying if it reports a row conflict.
 5. Copy the live application buckets (`myota-award-assets`,
    `myota-award-signatures`, `myota-certificates`, `myota-adif`, and
    `myota-geodata-imports`) into test SeaweedFS. Do not copy Loki objects.
@@ -109,7 +112,9 @@ Apply the Job, wait for completion, and inspect only its bucket-level count
 output. Then remove `myota-test-object-copy`, `myota-test-object-copy` Job,
 and `myota-live-copy-source` Secret. The relational copy script refuses to
 seed if the live database contains user accounts; add an anonymization step
-before copying identity data if that guard ever trips.
+before copying identity data if that guard ever trips. Successful relational
+copies get per-database namespace markers, so an interrupted run skips completed
+databases on retry.
 
 ## Runtime requirements
 
