@@ -29,7 +29,9 @@ TEST_IMAGES["web"] = "ghcr.io/myota-platform/myota-web:testing"
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tag", choices=("latest", "testing"), default="latest")
+    parser.add_argument(
+        "--tag", choices=("latest", "testing"), default="latest"
+    )
     args = parser.parse_args()
     output = TEST_VALUES if args.tag == "testing" else VALUES
     images = TEST_IMAGES if args.tag == "testing" else IMAGES

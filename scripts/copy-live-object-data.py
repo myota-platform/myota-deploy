@@ -61,14 +61,24 @@ def main() -> None:
         try:
             source.head_bucket(Bucket=bucket)
         except ClientError as error:
-            if error.response.get("ResponseMetadata", {}).get("HTTPStatusCode") == 404:
+            if (
+                error.response.get("ResponseMetadata", {}).get(
+                    "HTTPStatusCode"
+                )
+                == 404
+            ):
                 print(f"Source bucket absent, skipping {bucket}")
                 continue
             raise
         try:
             target.head_bucket(Bucket=bucket)
         except ClientError as error:
-            if error.response.get("ResponseMetadata", {}).get("HTTPStatusCode") != 404:
+            if (
+                error.response.get("ResponseMetadata", {}).get(
+                    "HTTPStatusCode"
+                )
+                != 404
+            ):
                 raise
             target.create_bucket(Bucket=bucket)
 
@@ -86,10 +96,16 @@ def main() -> None:
                 "Metadata": result.get("Metadata", {}),
             }
             request.update(
-                {field: result[field] for field in COPY_FIELDS if field in result}
+                {
+                    field: result[field]
+                    for field in COPY_FIELDS
+                    if field in result
+                }
             )
             target.put_object(**request)
-            tags = source.get_object_tagging(Bucket=bucket, Key=key).get("TagSet", [])
+            tags = source.get_object_tagging(Bucket=bucket, Key=key).get(
+                "TagSet", []
+            )
             if tags:
                 target.put_object_tagging(
                     Bucket=bucket,
