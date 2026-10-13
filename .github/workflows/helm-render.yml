@@ -41,7 +41,7 @@ jobs:
           --set geodataPipeline.importer.enabled=true
           --set geodataPipeline.importer.image=ghcr.io/myota-platform/myota-service:ci
 
-      - name: Render the gated JetStream pre-upgrade readiness barrier
+      - name: Render the gated JetStream topology bootstrap Job
         run: >-
           helm template myota deploy/helm/myota
           --namespace myota
@@ -59,6 +59,7 @@ jobs:
           --set jetstreamProvisioner.capacity.geodataWorkMaxBytes=3221225472
           --set jetstreamProvisioner.capacity.geodataWorkMaxMessages=500000
           --set jetstreamProvisioner.capacity.geodataWorkMaxMessageBytes=1048576
+          --show-only templates/jetstream-provisioner.yaml
           > /tmp/myota-jetstream-preflight.yaml
 
       - name: Verify JetStream preflight is fail-closed and upgrade-gated
