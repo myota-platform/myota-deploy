@@ -40,20 +40,29 @@ class JetStreamTopologyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must be set"):
                 desired_topology()
 
-    def test_jetstream_provisioner_runs_after_install_and_upgrade(self):
+    def test_jetstream_provisioner_runs_as_an_upgrade_safe_job(self):
         template = (
             ROOT / "deploy/helm/myota/templates/jetstream-provisioner.yaml"
         ).read_text()
-        self.assertIn('"helm.sh/hook": post-install,post-upgrade', template)
-        self.assertIn(
-            '"helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded',
-            template,
-        )
         self.assertIn(
             "name: myota-jetstream-provisioner-{{ .Release.Revision }}",
             template,
         )
         self.assertIn("backoffLimit: 10", template)
+        self.assertIn("ttlSecondsAfterFinished: 300", template)
+        self.assertNotIn('"helm.sh/hook":', template)
+
+    def test_activity_topology_is_provisioned_on_first_install(self):
+        template = (
+            ROOT
+            / "deploy/helm/myota/templates/activity-notification-topology.yaml"
+        ).read_text()
+        self.assertIn(
+            "name: myota-activity-notification-provisioner-{{ .Release.Revision }}",
+            template,
+        )
+        self.assertIn("ttlSecondsAfterFinished: 300", template)
+        self.assertNotIn('"helm.sh/hook": pre-upgrade', template)
 
     def test_apply_requires_explicit_operator_opt_in(self):
         with patch.dict(os.environ, CAPACITY, clear=True):
