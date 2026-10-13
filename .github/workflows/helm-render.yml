@@ -63,8 +63,12 @@ jobs:
 
       - name: Verify JetStream preflight is fail-closed and upgrade-gated
         run: |
-          grep -q '"helm.sh/hook": pre-upgrade' /tmp/myota-jetstream-preflight.yaml
           grep -q 'name: myota-jetstream-provisioner-' /tmp/myota-jetstream-preflight.yaml
+          grep -q 'ttlSecondsAfterFinished: 300' /tmp/myota-jetstream-preflight.yaml
+          if grep -q '"helm.sh/hook":' /tmp/myota-jetstream-preflight.yaml; then
+            echo 'JetStream provisioning must run alongside first-install resources.' >&2
+            exit 1
+          fi
           grep -q 'name: NATS_TOPOLOGY_APPLY' /tmp/myota-jetstream-preflight.yaml
           if helm template myota deploy/helm/myota \
             --set jetstreamProvisioner.enabled=true >/dev/null; then
