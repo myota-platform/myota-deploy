@@ -135,8 +135,8 @@ jobs:
             --values deploy/helm/myota-test/values-image-digests-testing.yaml \
             > /tmp/myota-test-rendered.yaml
           grep -q 'name: myota-web' /tmp/myota-test-rendered.yaml
-          grep -q 'ghcr.io/myota-platform/myota-web:testing' /tmp/myota-test-rendered.yaml
-          grep -q 'ghcr.io/myota-platform/myota-geodata-service:testing' /tmp/myota-test-rendered.yaml
+          grep -Eq 'ghcr.io/myota-platform/myota-web@sha256:[0-9a-f]{64}' /tmp/myota-test-rendered.yaml
+          grep -Eq 'ghcr.io/myota-platform/myota-geodata-service@sha256:[0-9a-f]{64}' /tmp/myota-test-rendered.yaml
           helm template myota-test deploy/helm/myota-test \
             --namespace myota-test \
             --values deploy/helm/myota-test/values-testing.yaml \

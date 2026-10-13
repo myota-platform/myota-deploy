@@ -2,11 +2,11 @@
 myota:
   imageRollout:
     digests:
-      identity: ""
-      programmes: ""
-      geodata: ""
-      activity: ""
-      gateway: ""
-      adminWeb: ""
-      platform: ""
-      web: ""
+      identity: "sha256:d1b35ba5338d50f3b77627da99a9ca170735ff461c014bd4b105ba098469de17"
+      programmes: "sha256:3cd2da5d6afe945ad505bdce8fb867789cc7a9076798dce52818a45745f43fc0"
+      geodata: "sha256:b84d6e9ab8b94828255bf2cbb8475dcdeb762f53d63db0e1ebdee871eff634ce"
+      activity: "sha256:653964a8c74cf485421449a122dd1397fc60f6a75efa2af90d55c4d094a22136"
+      gateway: "sha256:c28d13a1300f27141492505f8c59fcaa7a8a1914a2eb32ee46f11c113c1efe59"
+      adminWeb: "sha256:fa0b18db8f662426685aaf8cc45d6992e6716b67190626342f03a435c73c9ff3"
+      platform: "sha256:692de4438de96ebbdda6031e66ff0490ebea457b556e78f15057200d4bab22fa"
+      web: "sha256:563f0215e675b2a5824da264c6af8d852720192fdbe6fd951b4f6ffcc9cf98ec"
