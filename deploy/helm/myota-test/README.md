@@ -3,9 +3,11 @@
 This Fleet bundle deploys the shared MyOTA chart into `myota-test` using the
 mutable GHCR `testing` tags. The chart digest file records the resolved image
 digests, so a changed tag changes the pod template and causes a Kubernetes
-rollout. The scheduled digest workflow proposes each update as a PR to the
-protected `testing` branch and dispatches the required checks before enabling
-auto-merge.
+rollout. A digest updater workflow is defined on `testing`; it proposes each
+update as a protected-branch PR and dispatches the required checks before
+auto-merge. GitHub schedules execute from the default branch, so this updater
+is not active until safely released onto `main`. Fleet automatically
+reconciles committed test values.
 
 The test namespace owns independent PostgreSQL databases, JetStream, SeaweedFS,
 and observability storage. Application workloads do not point at the live
