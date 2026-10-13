@@ -1,15 +1,27 @@
 # MyOTA test deployment
 
 This Fleet bundle deploys the shared MyOTA chart into `myota-test` using the
-mutable GHCR `testing` tags. The chart digest file records the resolved image
-digests, so a changed tag changes the pod template and causes a Kubernetes
-rollout. A digest updater workflow is defined on `testing`; it proposes each
-update as a protected-branch PR and dispatches the required checks before
-auto-merge. A manual run verified registry lookup but GitHub rejected PR
-creation because organization policy prohibits Actions from creating PRs.
-GitHub schedules also execute from the default branch, so this updater is not
-active until safely released onto `main` and the organization permits its PR
-creation. Fleet automatically reconciles committed test values.
+mutable GHCR `testing` tags pinned to immutable digests. A digest change alters
+the pod template and causes a Kubernetes rollout after Fleet reconciles the
+values commit.
+
+The scheduled controller lives in the organization
+[`myota-platform/.github`](https://github.com/myota-platform/.github/blob/main/.github/workflows/sync-testing-image-digests.yml)
+default branch because GitHub schedules run only from a repository's default
+branch. Every five minutes it reads the published testing image digests,
+opens a digest-only PR to Deploy `testing`, and enables auto-merge after the
+protected branch checks pass. Its short-lived GitHub App token is restricted
+to this repository with Contents and Pull requests read/write permissions; it
+does not require enabling Actions PR creation in the organization.
+
+To activate polling, configure `TESTING_DIGEST_APP_ID` as a repository
+variable and `TESTING_DIGEST_APP_PRIVATE_KEY` as a repository Actions secret
+in `.github`. Install the App on `myota-deploy` only. Until both values are
+present, scheduled runs emit a warning and skip. The current test image update
+merged as Deploy PR [#49](https://github.com/myota-platform/myota-deploy/pull/49)
+at commit [`393adb4`](https://github.com/myota-platform/myota-deploy/commit/393adb40b0fd6e9ae071ac612cbb4ad67fbb0348);
+Fleet reconciled Helm revision 35, all test Deployments are available, and
+both test UIs return HTTP 200.
 
 The test namespace owns independent PostgreSQL databases, JetStream, SeaweedFS,
 and observability storage. Application workloads do not point at the live
