@@ -64,7 +64,7 @@ jobs:
       - name: Verify JetStream preflight is fail-closed and upgrade-gated
         run: |
           grep -q '"helm.sh/hook": pre-upgrade' /tmp/myota-jetstream-preflight.yaml
-          grep -q 'name: myota-jetstream-provisioner' /tmp/myota-jetstream-preflight.yaml
+          grep -q 'name: myota-jetstream-provisioner-' /tmp/myota-jetstream-preflight.yaml
           grep -q 'name: NATS_TOPOLOGY_APPLY' /tmp/myota-jetstream-preflight.yaml
           if helm template myota deploy/helm/myota \
             --set jetstreamProvisioner.enabled=true >/dev/null; then
@@ -114,7 +114,7 @@ jobs:
           grep -q 'MYOTA_GRAFANA_UPSTREAM' /tmp/myota-spainip-rendered.yaml
           test "$(grep -c 'name: BIGDATACLOUD_API_KEY' /tmp/myota-spainip-rendered.yaml)" -eq 2
           test "$(grep -c 'name: BIGDATACLOUD_LOCALITY_LANGUAGE' /tmp/myota-spainip-rendered.yaml)" -eq 2
-          grep -q 'name: myota-jetstream-provisioner' /tmp/myota-spainip-rendered.yaml
+          grep -q 'name: myota-jetstream-provisioner-' /tmp/myota-spainip-rendered.yaml
           grep -q 'name: NATS_EVENTS_RETENTION_MIGRATION' /tmp/myota-spainip-rendered.yaml
           grep -q 'value: "0"' /tmp/myota-spainip-rendered.yaml
           if helm template myota deploy/helm/myota \

@@ -40,11 +40,19 @@ class JetStreamTopologyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "must be set"):
                 desired_topology()
 
-    def test_jetstream_provisioner_runs_on_fresh_install(self):
+    def test_jetstream_provisioner_runs_after_install_and_upgrade(self):
         template = (
             ROOT / "deploy/helm/myota/templates/jetstream-provisioner.yaml"
         ).read_text()
-        self.assertNotIn('"helm.sh/hook"', template)
+        self.assertIn('"helm.sh/hook": post-install,post-upgrade', template)
+        self.assertIn(
+            '"helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded',
+            template,
+        )
+        self.assertIn(
+            "name: myota-jetstream-provisioner-{{ .Release.Revision }}",
+            template,
+        )
         self.assertIn("backoffLimit: 10", template)
 
     def test_apply_requires_explicit_operator_opt_in(self):
