@@ -87,7 +87,7 @@ copy_database() {
   kubectl exec -n "$source_namespace" "statefulset/$source_statefulset" -- \
     sh -ec 'database="$1"; shift; pg_dump -U "$POSTGRES_USER" -d "$database" -Fc --data-only "$@"' sh "$database" "$@" \
     | kubectl exec -i -n "$target_namespace" "statefulset/$target_statefulset" -- \
-      sh -ec 'pg_restore -U "$POSTGRES_USER" -d "$1" --data-only --disable-triggers --single-transaction --no-owner -' sh "$database"
+      sh -ec 'pg_restore -U "$POSTGRES_USER" -d "$1" --data-only --disable-triggers --single-transaction --no-owner' sh "$database"
   kubectl annotate namespace "$target_namespace" "$database_marker=complete" --overwrite=false
 }
 
