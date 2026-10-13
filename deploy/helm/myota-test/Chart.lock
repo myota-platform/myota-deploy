@@ -1,6 +1,6 @@
 dependencies:
 - name: myota
   repository: file://../myota
-  version: 0.2.22
-digest: sha256:e894adb74f302fe546dc72d0ec65d53375cf390602f4156b9d7c7431af247f6d
-generated: "2026-10-13T21:06:13.074780566+02:00"
+  version: 0.2.23
+digest: sha256:778ae4a83cfcf2508b5f05d51d9e1cfb06cc42a02db25c0ab7004bc8f955dacd
+generated: "2026-10-13T21:16:58.373233492+02:00"
