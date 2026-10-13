@@ -32,9 +32,11 @@ myota:
     entryPoints: [websecure]
     tls:
       enabled: true
+      secretName: ""
       certResolver: acmeresolver
     adminTls:
       enabled: true
+      secretName: ""
       certResolver: acmeresolver
   postgres:
     enabled: true
