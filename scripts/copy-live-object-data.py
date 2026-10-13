@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import os
+import shutil
+import tempfile
 from collections.abc import Iterator
 from typing import Any
 
@@ -88,21 +90,29 @@ def main() -> None:
             key = item["Key"]
             result = source.get_object(Bucket=bucket, Key=key)
             body = result["Body"]
-            request: dict[str, Any] = {
-                "Bucket": bucket,
-                "Key": key,
-                "Body": body,
-                "ContentLength": int(result["ContentLength"]),
-                "Metadata": result.get("Metadata", {}),
-            }
-            request.update(
-                {
-                    field: result[field]
-                    for field in COPY_FIELDS
-                    if field in result
-                }
-            )
-            target.put_object(**request)
+            try:
+                with tempfile.SpooledTemporaryFile(
+                    max_size=8 * 1024 * 1024
+                ) as payload:
+                    shutil.copyfileobj(body, payload)
+                    payload.seek(0)
+                    request: dict[str, Any] = {
+                        "Bucket": bucket,
+                        "Key": key,
+                        "Body": payload,
+                        "ContentLength": int(result["ContentLength"]),
+                        "Metadata": result.get("Metadata", {}),
+                    }
+                    request.update(
+                        {
+                            field: result[field]
+                            for field in COPY_FIELDS
+                            if field in result
+                        }
+                    )
+                    target.put_object(**request)
+            finally:
+                body.close()
             tags = source.get_object_tagging(Bucket=bucket, Key=key).get(
                 "TagSet", []
             )
@@ -112,7 +122,6 @@ def main() -> None:
                     Key=key,
                     Tagging={"TagSet": tags},
                 )
-            body.close()
             count += 1
             byte_count += int(item.get("Size", 0))
         print(f"Copied bucket {bucket}: {count} objects, {byte_count} bytes")
