@@ -18,9 +18,23 @@ if kubectl get ingress,ingressroute -n "$target_namespace" -o name 2>/dev/null |
   exit 1
 fi
 
+wait_for_statefulset() {
+  local namespace="$1"
+  local statefulset="$2"
+  local deadline=$(( $(date +%s) + 180 ))
+  until kubectl get --namespace "$namespace" "statefulset/$statefulset" -o json \
+    | jq -e '.status.readyReplicas == .spec.replicas and .status.readyReplicas > 0' >/dev/null; do
+    if [[ "$(date +%s)" -ge "$deadline" ]]; then
+      echo "Timed out waiting for $namespace/statefulset/$statefulset replicas." >&2
+      return 1
+    fi
+    sleep 2
+  done
+}
+
 for statefulset in myota-core-postgres myota-activity-postgres myota-geo-postgis; do
-  kubectl wait --namespace "$source_namespace" --for=condition=ready "statefulset/$statefulset" --timeout=180s
-  kubectl wait --namespace "$target_namespace" --for=condition=ready "statefulset/$statefulset" --timeout=180s
+  wait_for_statefulset "$source_namespace" "$statefulset"
+  wait_for_statefulset "$target_namespace" "$statefulset"
 done
 
 # The live Core database currently has no user accounts. Refuse to copy stored
