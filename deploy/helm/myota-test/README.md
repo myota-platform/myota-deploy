@@ -5,9 +5,11 @@ mutable GHCR `testing` tags. The chart digest file records the resolved image
 digests, so a changed tag changes the pod template and causes a Kubernetes
 rollout. A digest updater workflow is defined on `testing`; it proposes each
 update as a protected-branch PR and dispatches the required checks before
-auto-merge. GitHub schedules execute from the default branch, so this updater
-is not active until safely released onto `main`. Fleet automatically
-reconciles committed test values.
+auto-merge. A manual run verified registry lookup but GitHub rejected PR
+creation because organization policy prohibits Actions from creating PRs.
+GitHub schedules also execute from the default branch, so this updater is not
+active until safely released onto `main` and the organization permits its PR
+creation. Fleet automatically reconciles committed test values.
 
 The test namespace owns independent PostgreSQL databases, JetStream, SeaweedFS,
 and observability storage. Application workloads do not point at the live
@@ -128,8 +130,9 @@ images. For a changed digest, it opens or updates a PR to `testing`, dispatches
 the branch's Python, runtime image, and Helm checks, and enables auto-merge
 subject to branch protection. This workflow is currently present on `testing`
 but its schedule is inactive until the workflow is released onto default branch
-`main`; publishing a new tag alone does not yet update this test release. Once
-active, Fleet watches `testing` and reconciles the merged digest change. A
+`main`, and organization policy currently blocks its PR creation. Publishing a
+new tag alone does not yet update this test release. After both gates are
+resolved, Fleet watches `testing` and reconciles the merged digest change. A
 failed check leaves the PR open and the currently deployed image unchanged.
 
 Production values remain in `deploy/helm/myota`; this wrapper is a separate
