@@ -41,7 +41,7 @@ jobs:
           --set geodataPipeline.importer.enabled=true
           --set geodataPipeline.importer.image=ghcr.io/myota-platform/myota-service:ci
 
-      - name: Render the gated JetStream pre-upgrade readiness barrier
+      - name: Render the gated JetStream topology bootstrap Job
         run: >-
           helm template myota deploy/helm/myota
           --namespace myota
@@ -59,12 +59,17 @@ jobs:
           --set jetstreamProvisioner.capacity.geodataWorkMaxBytes=3221225472
           --set jetstreamProvisioner.capacity.geodataWorkMaxMessages=500000
           --set jetstreamProvisioner.capacity.geodataWorkMaxMessageBytes=1048576
+          --show-only templates/jetstream-provisioner.yaml
           > /tmp/myota-jetstream-preflight.yaml
 
       - name: Verify JetStream preflight is fail-closed and upgrade-gated
         run: |
-          grep -q '"helm.sh/hook": pre-upgrade' /tmp/myota-jetstream-preflight.yaml
           grep -q 'name: myota-jetstream-provisioner-' /tmp/myota-jetstream-preflight.yaml
+          grep -q 'ttlSecondsAfterFinished: 300' /tmp/myota-jetstream-preflight.yaml
+          if grep -q '"helm.sh/hook":' /tmp/myota-jetstream-preflight.yaml; then
+            echo 'JetStream provisioning must run alongside first-install resources.' >&2
+            exit 1
+          fi
           grep -q 'name: NATS_TOPOLOGY_APPLY' /tmp/myota-jetstream-preflight.yaml
           if helm template myota deploy/helm/myota \
             --set jetstreamProvisioner.enabled=true >/dev/null; then
