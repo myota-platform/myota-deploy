@@ -1,0 +1,10 @@
+defaultNamespace: myota-test
+helm:
+  chart: .
+  releaseName: myota-test
+  valuesFiles:
+    - values-testing.yaml
+    - values-image-digests-testing.yaml
+  waitForJobs: true
+  timeoutSeconds: 1800
+  atomic: false

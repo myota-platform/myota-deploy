@@ -18,7 +18,10 @@ class ObservabilityConfigurationTests(unittest.TestCase):
                 / "deploy/helm/myota/observability/grafana/dashboards"
                 / source.name
             )
-            self.assertEqual(dashboard, json.loads(mirror.read_text()))
+            chart_dashboard = json.loads(
+                mirror.read_text().replace("{{MYOTA_NAMESPACE}}", "myota")
+            )
+            self.assertEqual(dashboard, chart_dashboard)
             self.assertEqual(
                 dashboard["time"], {"from": "now-30m", "to": "now"}
             )
@@ -201,11 +204,11 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertNotIn("nodes/proxy", helm_template)
         self.assertNotIn("insecure_skip_verify", prom_config)
         self.assertIn(
-            'regex: "(pod_cpu_usage_seconds_total|pod_memory_working_set_bytes);myota"',
+            'regex: "(pod_cpu_usage_seconds_total|pod_memory_working_set_bytes);{{ .Release.Namespace }}"',
             prom_config,
         )
         self.assertIn(
-            'regex: "(kubelet_volume_stats_available_bytes|kubelet_volume_stats_capacity_bytes);myota"',
+            'regex: "(kubelet_volume_stats_available_bytes|kubelet_volume_stats_capacity_bytes);{{ .Release.Namespace }}"',
             prom_config,
         )
         self.assertIn("folder: K3s", dashboard_provider)

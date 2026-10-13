@@ -12,6 +12,7 @@ imageRollout:
     activity: ""
     gateway: ""
     adminWeb: ""
+    web: ""
     platform: ""
 gateway:
   imageRepository: ghcr.io/myota-platform/myota-gateway
@@ -27,6 +28,12 @@ adminWeb:
   port: 8080
   servicePort: 8090
   gatewayUpstream: myota-gateway:8080
+web:
+  enabled: false
+  imageRepository: ghcr.io/myota-platform/myota-web
+  imageTag: ""
+  port: 8080
+  servicePort: 8080
 ingress:
   enabled: false
   # Use "traefik" for Traefik's IngressRoute CRD, or "kubernetes" for a
@@ -39,6 +46,8 @@ ingress:
   host: api.myota.top
   # Administration UI hostname; independently configurable per environment.
   adminHost: admin.myota.top
+  # Participant-facing Web UI hostname; empty disables its route.
+  webHost: ""
   annotations: {}
   tls:
     enabled: false

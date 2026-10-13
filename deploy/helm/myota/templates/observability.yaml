@@ -29,7 +29,7 @@ data:
   tempo.yaml: |
 {{ .Files.Get "observability/tempo.yaml" | indent 4 }}
   prometheus.yml: |
-{{ .Files.Get "observability/prometheus.yml" | indent 4 }}
+{{ tpl (.Files.Get "observability/prometheus.yml") . | indent 4 }}
   rules.yml: |
 {{ .Files.Get "observability/rules.yml" | indent 4 }}
   alertmanager.yml: |
@@ -47,11 +47,11 @@ data:
   myota-object-storage.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-object-storage.json" | indent 4 }}
   myota-logs-failures.json: |
-{{ .Files.Get "observability/grafana/dashboards/myota-logs-failures.json" | indent 4 }}
+{{ replace "{{MYOTA_NAMESPACE}}" .Release.Namespace (.Files.Get "observability/grafana/dashboards/myota-logs-failures.json") | indent 4 }}
   myota-postgresql-postgis.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-postgresql-postgis.json" | indent 4 }}
   myota-k3s-workload.json: |
-{{ .Files.Get "observability/grafana/dashboards/myota-k3s-workload.json" | indent 4 }}
+{{ replace "{{MYOTA_NAMESPACE}}" .Release.Namespace (.Files.Get "observability/grafana/dashboards/myota-k3s-workload.json") | indent 4 }}
   myota-application-workflows.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-application-workflows.json" | indent 4 }}
   alert-rules.yml: |

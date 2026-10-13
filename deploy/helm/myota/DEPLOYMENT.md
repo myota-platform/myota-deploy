@@ -186,6 +186,13 @@ release on failure. This does not delete or reinitialize PVC data.
 
 Wait for Fleet to report the bundle ready before sending public traffic.
 
+The separate test release lives in `myota-test`, uses GHCR `testing` images,
+and keeps ingress closed until its one-time live-data seed is complete. Follow
+the [test deployment runbook](../myota-test/README.md) for its Fleet source,
+isolated secrets, data-copy boundaries, and hostnames. The testing image-digest
+workflow uses protected PRs and check-gated auto-merge so Fleet can reconcile
+new image digests without mutating the live release.
+
 The role-creation script runs only when a PostgreSQL volume is initialized for
 the first time. If you restore a database volume or attach a pre-existing
 database, make sure the `myota_app` role, database grants, and matching URL
@@ -195,15 +202,15 @@ data directory.
 ## Fleet setup
 
 The `Roll out newly published service images` GitHub Actions workflow checks
-the public GHCR `:latest` tags every five minutes and on demand. When a digest
-changes, it commits the immutable digest to `values-image-digests.yaml`.
-Fleet reconciles the commit. The chart's `myota.imageReference` helper renders
-first-party service, worker, notification, provisioning, migration and
-scheduled-job containers as `repository@sha256:…` when a digest is configured.
-The digest annotation is also retained in the pod template for rollout
-visibility. Empty digests fall back to the configured tag for local or
-non-production environments; production values supply digests. Keep Fleet
-pointed at the intended deployment branch and allow it to reconcile commits.
+the public GHCR `:testing` tags every five minutes. When a digest changes, it
+opens or updates a PR to the protected `testing` branch, dispatches required
+quality and Helm checks, and enables auto-merge subject to those checks. Fleet
+reconciles the committed digest update. The chart's `myota.imageReference`
+helper renders first-party service, worker, notification, provisioning,
+migration and scheduled-job containers as `repository@sha256:…` when a digest
+is configured. The digest annotation is also retained in each pod template for
+rollout visibility. The isolated `myota-test` Fleet bundle tracks `testing`;
+the production bundle remains on `main` and uses its separately pinned digests.
 
 The identity access-token lifetime is configurable as
 `auth.accessTokenSeconds`; the Spainip values set it to 1800 seconds (30
@@ -231,11 +238,11 @@ review the workflow result before Fleet reconciles them.
 
 ## Rollouts and operational checks
 
-- Production first-party workloads are rendered from immutable image digests
-  recorded in `values-image-digests.yaml`; pod references and runtime content
-  therefore use the same artifact. Update a digest through the image-digest-sync
-  workflow or a reviewed release change. Local/non-production values may omit a
-  digest and use the configured tag fallback.
+- First-party workloads are rendered from immutable image digests recorded in
+  their environment's digest values file; pod references and runtime content
+  therefore use the same artifact. The protected testing branch receives
+  automated testing-tag digest PRs. Production digests remain pinned on `main`
+  and move with a release PR from `testing`.
 - Confirm `/healthz` through `https://api.myota.top/healthz`; open the admin UI at
   `https://admin.myota.top` and test login, entity reads, geodata import, and
   one activity/QSO workflow before announcing the service.
@@ -272,8 +279,8 @@ review the workflow result before Fleet reconciles them.
 - A readiness or migration failure is not a reason to delete database PVCs.
   The migration gate preserves existing data and remains inspectable; diagnose
   the failed Job and pod events, correct the cause, and let Fleet reconcile.
-- The current chart deploys the administration web; the `myota-web` participant
-  client is not yet packaged as a container or included in this chart.
+- The chart supports an optional `myota-web` participant client. It is disabled
+  in the live Spainip values and enabled only for the isolated testing release.
 - Observability dashboards are at `/observability/` on the authenticated Admin
   UI host. The stack is enabled by the Spainip values; no separate public
   Grafana, Prometheus, Alertmanager, or Tempo hostname is created.

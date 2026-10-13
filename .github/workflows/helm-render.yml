@@ -124,6 +124,34 @@ jobs:
             echo 'Geodata worker replica limit was not enforced.' >&2
             exit 1
           fi
+
+      - name: Build and lint the isolated testing release
+        run: |
+          helm dependency build deploy/helm/myota-test
+          helm lint deploy/helm/myota-test
+          helm template myota-test deploy/helm/myota-test \
+            --namespace myota-test \
+            --values deploy/helm/myota-test/values-testing.yaml \
+            --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            > /tmp/myota-test-rendered.yaml
+          grep -q 'name: myota-web' /tmp/myota-test-rendered.yaml
+          grep -q 'ghcr.io/myota-platform/myota-web:testing' /tmp/myota-test-rendered.yaml
+          grep -q 'ghcr.io/myota-platform/myota-geodata-service:testing' /tmp/myota-test-rendered.yaml
+          if grep -q 'Host(`admin.test.myota.top`)' /tmp/myota-test-rendered.yaml || \
+            grep -q 'Host(`test.myota.top`)' /tmp/myota-test-rendered.yaml; then
+            echo 'Test ingress must remain closed until live data copy is verified.' >&2
+            exit 1
+          fi
+          helm template myota-test deploy/helm/myota-test \
+            --namespace myota-test \
+            --values deploy/helm/myota-test/values-testing.yaml \
+            --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            --set myota.ingress.enabled=true \
+            > /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'Host(`admin.test.myota.top`)' /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'Host(`test.myota.top`)' /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'name: myota-user-web' /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'myota-test' /tmp/myota-test-rendered.yaml
           if helm template myota deploy/helm/myota \
             --namespace myota \
             --values deploy/helm/myota/values-spainip.yaml \
