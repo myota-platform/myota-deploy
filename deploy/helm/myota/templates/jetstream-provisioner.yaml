@@ -6,14 +6,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: myota-jetstream-provisioner
+  name: myota-jetstream-provisioner-{{ .Release.Revision }}
   annotations:
-    "helm.sh/hook": pre-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    myota.org/job-purpose: jetstream-topology-provisioning
 spec:
-  backoffLimit: 0
-  activeDeadlineSeconds: 300
+  backoffLimit: 10
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 300
   template:
     metadata:
       labels:

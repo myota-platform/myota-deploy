@@ -29,7 +29,7 @@ data:
   tempo.yaml: |
 {{ .Files.Get "observability/tempo.yaml" | indent 4 }}
   prometheus.yml: |
-{{ .Files.Get "observability/prometheus.yml" | indent 4 }}
+{{ tpl (.Files.Get "observability/prometheus.yml") . | indent 4 }}
   rules.yml: |
 {{ .Files.Get "observability/rules.yml" | indent 4 }}
   alertmanager.yml: |
@@ -47,11 +47,11 @@ data:
   myota-object-storage.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-object-storage.json" | indent 4 }}
   myota-logs-failures.json: |
-{{ .Files.Get "observability/grafana/dashboards/myota-logs-failures.json" | indent 4 }}
+{{ replace "{{MYOTA_NAMESPACE}}" .Release.Namespace (.Files.Get "observability/grafana/dashboards/myota-logs-failures.json") | indent 4 }}
   myota-postgresql-postgis.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-postgresql-postgis.json" | indent 4 }}
   myota-k3s-workload.json: |
-{{ .Files.Get "observability/grafana/dashboards/myota-k3s-workload.json" | indent 4 }}
+{{ replace "{{MYOTA_NAMESPACE}}" .Release.Namespace (.Files.Get "observability/grafana/dashboards/myota-k3s-workload.json") | indent 4 }}
   myota-application-workflows.json: |
 {{ .Files.Get "observability/grafana/dashboards/myota-application-workflows.json" | indent 4 }}
   alert-rules.yml: |
@@ -66,12 +66,10 @@ kind: Job
 metadata:
   name: {{ include "myota.fullname" (dict "name" "postgres-monitor-role") }}-{{ .Release.Revision }}
   annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    myota.org/job-purpose: postgres-monitor-role-grant
 spec:
   backoffLimit: 2
-  activeDeadlineSeconds: 300
+  activeDeadlineSeconds: 900
   ttlSecondsAfterFinished: 3600
   template:
     metadata:

@@ -8,9 +8,7 @@ on:
       - "deploy/helm/**"
       - ".github/workflows/helm-render.yml"
   pull_request:
-    paths:
-      - "deploy/helm/**"
-      - ".github/workflows/helm-render.yml"
+    branches: [main, testing]
 
 permissions:
   contents: read
@@ -43,7 +41,7 @@ jobs:
           --set geodataPipeline.importer.enabled=true
           --set geodataPipeline.importer.image=ghcr.io/myota-platform/myota-service:ci
 
-      - name: Render the gated JetStream pre-upgrade readiness barrier
+      - name: Render the gated JetStream topology bootstrap Job
         run: >-
           helm template myota deploy/helm/myota
           --namespace myota
@@ -61,12 +59,17 @@ jobs:
           --set jetstreamProvisioner.capacity.geodataWorkMaxBytes=3221225472
           --set jetstreamProvisioner.capacity.geodataWorkMaxMessages=500000
           --set jetstreamProvisioner.capacity.geodataWorkMaxMessageBytes=1048576
+          --show-only templates/jetstream-provisioner.yaml
           > /tmp/myota-jetstream-preflight.yaml
 
       - name: Verify JetStream preflight is fail-closed and upgrade-gated
         run: |
-          grep -q '"helm.sh/hook": pre-upgrade' /tmp/myota-jetstream-preflight.yaml
-          grep -q 'name: myota-jetstream-provisioner' /tmp/myota-jetstream-preflight.yaml
+          grep -q 'name: myota-jetstream-provisioner-' /tmp/myota-jetstream-preflight.yaml
+          grep -q 'ttlSecondsAfterFinished: 300' /tmp/myota-jetstream-preflight.yaml
+          if grep -q '"helm.sh/hook":' /tmp/myota-jetstream-preflight.yaml; then
+            echo 'JetStream provisioning must run alongside first-install resources.' >&2
+            exit 1
+          fi
           grep -q 'name: NATS_TOPOLOGY_APPLY' /tmp/myota-jetstream-preflight.yaml
           if helm template myota deploy/helm/myota \
             --set jetstreamProvisioner.enabled=true >/dev/null; then
@@ -116,7 +119,7 @@ jobs:
           grep -q 'MYOTA_GRAFANA_UPSTREAM' /tmp/myota-spainip-rendered.yaml
           test "$(grep -c 'name: BIGDATACLOUD_API_KEY' /tmp/myota-spainip-rendered.yaml)" -eq 2
           test "$(grep -c 'name: BIGDATACLOUD_LOCALITY_LANGUAGE' /tmp/myota-spainip-rendered.yaml)" -eq 2
-          grep -q 'name: myota-jetstream-provisioner' /tmp/myota-spainip-rendered.yaml
+          grep -q 'name: myota-jetstream-provisioner-' /tmp/myota-spainip-rendered.yaml
           grep -q 'name: NATS_EVENTS_RETENTION_MIGRATION' /tmp/myota-spainip-rendered.yaml
           grep -q 'value: "0"' /tmp/myota-spainip-rendered.yaml
           if helm template myota deploy/helm/myota \
@@ -126,6 +129,40 @@ jobs:
             echo 'Geodata worker replica limit was not enforced.' >&2
             exit 1
           fi
+
+      - name: Build and lint the isolated testing release
+        run: |
+          helm dependency build deploy/helm/myota-test
+          helm lint deploy/helm/myota-test
+          helm template myota-test deploy/helm/myota-test \
+            --namespace myota-test \
+            --values deploy/helm/myota-test/values-testing.yaml \
+            --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            > /tmp/myota-test-rendered.yaml
+          grep -q 'name: myota-web' /tmp/myota-test-rendered.yaml
+          grep -Eq 'ghcr.io/myota-platform/myota-web@sha256:[0-9a-f]{64}' /tmp/myota-test-rendered.yaml
+          grep -Eq 'ghcr.io/myota-platform/myota-geodata-service@sha256:[0-9a-f]{64}' /tmp/myota-test-rendered.yaml
+          helm template myota-test deploy/helm/myota-test \
+            --namespace myota-test \
+            --values deploy/helm/myota-test/values-testing.yaml \
+            --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            --set myota.ingress.enabled=false \
+            > /tmp/myota-test-private-rendered.yaml
+          if grep -q 'Host(`admin.test.myota.top`)' /tmp/myota-test-private-rendered.yaml || \
+            grep -q 'Host(`test.myota.top`)' /tmp/myota-test-private-rendered.yaml; then
+            echo 'Ingress-disabled test render unexpectedly contains public routes.' >&2
+            exit 1
+          fi
+          helm template myota-test deploy/helm/myota-test \
+            --namespace myota-test \
+            --values deploy/helm/myota-test/values-testing.yaml \
+            --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            --set myota.ingress.enabled=true \
+            > /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'Host(`admin.test.myota.top`)' /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'Host(`test.myota.top`)' /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'name: myota-user-web' /tmp/myota-test-exposed-rendered.yaml
+          grep -q 'myota-test' /tmp/myota-test-rendered.yaml
           if helm template myota deploy/helm/myota \
             --namespace myota \
             --values deploy/helm/myota/values-spainip.yaml \

@@ -44,7 +44,7 @@ scrape_configs:
         target_label: node
     metric_relabel_configs:
       - source_labels: [__name__, namespace]
-        regex: "(pod_cpu_usage_seconds_total|pod_memory_working_set_bytes);myota"
+        regex: "(pod_cpu_usage_seconds_total|pod_memory_working_set_bytes);{{ .Release.Namespace }}"
         action: keep
   - job_name: k3s-kubelet-volumes
     scrape_interval: 30s
@@ -65,5 +65,5 @@ scrape_configs:
         target_label: node
     metric_relabel_configs:
       - source_labels: [__name__, namespace]
-        regex: "(kubelet_volume_stats_available_bytes|kubelet_volume_stats_capacity_bytes);myota"
+        regex: "(kubelet_volume_stats_available_bytes|kubelet_volume_stats_capacity_bytes);{{ .Release.Namespace }}"
         action: keep

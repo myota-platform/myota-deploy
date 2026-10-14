@@ -17,6 +17,8 @@ from provision_jetstream import (
 )
 
 
+ROOT = Path(__file__).parents[1]
+
 CAPACITY = {
     "NATS_EVENTS_MAX_BYTES": "1048576",
     "NATS_EVENTS_MAX_MESSAGES": "1000",
@@ -37,6 +39,30 @@ class JetStreamTopologyTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaisesRegex(ValueError, "must be set"):
                 desired_topology()
+
+    def test_jetstream_provisioner_runs_as_an_upgrade_safe_job(self):
+        template = (
+            ROOT / "deploy/helm/myota/templates/jetstream-provisioner.yaml"
+        ).read_text()
+        self.assertIn(
+            "name: myota-jetstream-provisioner-{{ .Release.Revision }}",
+            template,
+        )
+        self.assertIn("backoffLimit: 10", template)
+        self.assertIn("ttlSecondsAfterFinished: 300", template)
+        self.assertNotIn('"helm.sh/hook":', template)
+
+    def test_activity_topology_is_provisioned_on_first_install(self):
+        template = (
+            ROOT
+            / "deploy/helm/myota/templates/activity-notification-topology.yaml"
+        ).read_text()
+        self.assertIn(
+            "name: myota-activity-notification-provisioner-{{ .Release.Revision }}",
+            template,
+        )
+        self.assertIn("ttlSecondsAfterFinished: 300", template)
+        self.assertNotIn('"helm.sh/hook": pre-upgrade', template)
 
     def test_apply_requires_explicit_operator_opt_in(self):
         with patch.dict(os.environ, CAPACITY, clear=True):

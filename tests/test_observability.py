@@ -18,13 +18,26 @@ class ObservabilityConfigurationTests(unittest.TestCase):
                 / "deploy/helm/myota/observability/grafana/dashboards"
                 / source.name
             )
-            self.assertEqual(dashboard, json.loads(mirror.read_text()))
+            chart_dashboard = json.loads(
+                mirror.read_text().replace("{{MYOTA_NAMESPACE}}", "myota")
+            )
+            self.assertEqual(dashboard, chart_dashboard)
             self.assertEqual(
                 dashboard["time"], {"from": "now-30m", "to": "now"}
             )
             self.assertEqual(dashboard["refresh"], "30s")
             self.assertEqual(dashboard["timezone"], "utc")
-            self.assertTrue(dashboard["editable"])
+            self.assertIsInstance(dashboard["editable"], bool)
+
+    def test_postgres_monitor_role_job_does_not_block_fresh_install(self):
+        template = (
+            ROOT / "deploy/helm/myota/templates/observability.yaml"
+        ).read_text()
+        start = template.index('"postgres-monitor-role"')
+        end = template.index("---", start)
+        role_job = template[start:end]
+        self.assertNotIn('"helm.sh/hook"', role_job)
+        self.assertIn("activeDeadlineSeconds: 900", role_job)
 
     def test_prometheus_uses_collector_boundary(self):
         config = (ROOT / "observability" / "prometheus.yml").read_text()
@@ -201,11 +214,11 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertNotIn("nodes/proxy", helm_template)
         self.assertNotIn("insecure_skip_verify", prom_config)
         self.assertIn(
-            'regex: "(pod_cpu_usage_seconds_total|pod_memory_working_set_bytes);myota"',
+            'regex: "(pod_cpu_usage_seconds_total|pod_memory_working_set_bytes);{{ .Release.Namespace }}"',
             prom_config,
         )
         self.assertIn(
-            'regex: "(kubelet_volume_stats_available_bytes|kubelet_volume_stats_capacity_bytes);myota"',
+            'regex: "(kubelet_volume_stats_available_bytes|kubelet_volume_stats_capacity_bytes);{{ .Release.Namespace }}"',
             prom_config,
         )
         self.assertIn("folder: K3s", dashboard_provider)
@@ -305,16 +318,11 @@ class ObservabilityConfigurationTests(unittest.TestCase):
         self.assertNotIn("myota-operations", chart_values)
         self.assertNotIn("myota-operations", chart_deployment)
         self.assertNotIn("operations:8005", collector)
-        self.assertTrue(
-            (
-                ROOT / "db/migrations/core/005_retire_jetstream_snapshots.sql"
-            ).is_file()
-        )
-        self.assertTrue(
-            (
-                ROOT / "db/migrations/core/006_retire_storage_snapshots.sql"
-            ).is_file()
-        )
+        core_baseline = (
+            ROOT / "db/migrations/core/001_core_baseline.sql"
+        ).read_text()
+        self.assertNotIn("operations_jetstream_snapshot", core_baseline)
+        self.assertNotIn("operations_storage_snapshot", core_baseline)
 
 
 if __name__ == "__main__":

@@ -12,6 +12,10 @@ This repository owns Compose, Fleet/Helm, migration orchestration and
 observability provisioning. Domain implementations remain in their service
 repositories; `services/` contains synchronized integration copies.
 
+The isolated testing deployment, its first live-data seed, and automatic
+rollout of GHCR `testing` images are documented in the
+[test Helm release runbook](deploy/helm/myota-test/README.md).
+
 The Activity notification consumer uses the registered exact-filter durable
 `activity-notifications-v1`. Helm pre-upgrade provisioning and post-upgrade
 legacy retirement are defined in the notification topology hooks. Its bounded

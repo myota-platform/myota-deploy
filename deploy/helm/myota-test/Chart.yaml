@@ -1,0 +1,9 @@
+apiVersion: v2
+name: myota-test
+description: Isolated MyOTA test deployment using the shared application chart
+type: application
+version: 0.1.0
+dependencies:
+  - name: myota
+    version: 0.2.25
+    repository: file://../myota

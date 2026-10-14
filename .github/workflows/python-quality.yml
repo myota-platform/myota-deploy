@@ -1,9 +1,11 @@
 name: Python quality
 
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, testing, 'feature/**', 'fix/**']
   pull_request:
+    branches: [main, testing]
 
 jobs:
   python-quality:
