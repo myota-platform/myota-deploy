@@ -155,6 +155,17 @@ jobs:
             --namespace myota-test \
             --values deploy/helm/myota-test/values-testing.yaml \
             --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            --set myota.services.email.enabled=false \
+            --set myota.services.email.imageTag=testing \
+            > /tmp/myota-test-email-disabled-rendered.yaml
+          if grep -q 'name: myota-email' /tmp/myota-test-email-disabled-rendered.yaml; then
+            echo 'Disabled Email service unexpectedly rendered resources.' >&2
+            exit 1
+          fi
+          helm template myota-test deploy/helm/myota-test \
+            --namespace myota-test \
+            --values deploy/helm/myota-test/values-testing.yaml \
+            --values deploy/helm/myota-test/values-image-digests-testing.yaml \
             --set myota.ingress.enabled=false \
             > /tmp/myota-test-private-rendered.yaml
           if grep -q 'Host(`admin.test.myota.top`)' /tmp/myota-test-private-rendered.yaml || \
