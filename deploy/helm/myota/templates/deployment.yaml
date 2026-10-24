@@ -1,4 +1,5 @@
 {{- range $name, $cfg := .Values.services }}
+{{- if ne $cfg.enabled false }}
 {{- $podResources := default $.Values.resources $cfg.resources }}
 apiVersion: apps/v1
 kind: Deployment
@@ -198,6 +199,7 @@ spec:
           {{- end }}
           resources: {{- toYaml $podResources | nindent 12 }}
 ---
+{{- end }}
 {{- end }}
 {{- if .Values.activityWorkers.enabled }}
 ---
