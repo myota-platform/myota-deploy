@@ -22,6 +22,8 @@ myota:
     activity:
       imageTag: testing
       replicas: 1
+    email:
+      enabled: false
   ingress:
     enabled: true
     provider: traefik

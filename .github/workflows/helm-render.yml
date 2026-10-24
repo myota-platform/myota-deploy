@@ -148,6 +148,7 @@ jobs:
             --namespace myota-test \
             --values deploy/helm/myota-test/values-testing.yaml \
             --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            --set myota.services.email.enabled=true \
             --set myota.services.email.imageTag=testing \
             > /tmp/myota-test-email-rendered.yaml
           grep -q 'name: EMAIL_DATABASE_URL' /tmp/myota-test-email-rendered.yaml
@@ -155,7 +156,6 @@ jobs:
             --namespace myota-test \
             --values deploy/helm/myota-test/values-testing.yaml \
             --values deploy/helm/myota-test/values-image-digests-testing.yaml \
-            --set myota.services.email.enabled=false \
             --set myota.services.email.imageTag=testing \
             > /tmp/myota-test-email-disabled-rendered.yaml
           if grep -q 'name: myota-email' /tmp/myota-test-email-disabled-rendered.yaml; then
