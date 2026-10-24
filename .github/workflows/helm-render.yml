@@ -142,6 +142,15 @@ jobs:
           grep -q 'name: myota-web' /tmp/myota-test-rendered.yaml
           grep -Eq 'ghcr.io/myota-platform/myota-web@sha256:[0-9a-f]{64}' /tmp/myota-test-rendered.yaml
           grep -Eq 'ghcr.io/myota-platform/myota-geodata-service@sha256:[0-9a-f]{64}' /tmp/myota-test-rendered.yaml
+          grep -q 'secretName: "myota-test-seaweedfs-s3-config"' /tmp/myota-test-rendered.yaml
+          grep -q -- '-s3.config=/etc/seaweedfs-auth/s3-config.json' /tmp/myota-test-rendered.yaml
+          helm template myota-test deploy/helm/myota-test \
+            --namespace myota-test \
+            --values deploy/helm/myota-test/values-testing.yaml \
+            --values deploy/helm/myota-test/values-image-digests-testing.yaml \
+            --set myota.services.email.imageTag=testing \
+            > /tmp/myota-test-email-rendered.yaml
+          grep -q 'name: EMAIL_DATABASE_URL' /tmp/myota-test-email-rendered.yaml
           helm template myota-test deploy/helm/myota-test \
             --namespace myota-test \
             --values deploy/helm/myota-test/values-testing.yaml \

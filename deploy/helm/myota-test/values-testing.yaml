@@ -46,6 +46,7 @@ myota:
   seaweedfs:
     enabled: true
     storageSize: 20Gi
+    configSecretName: myota-test-seaweedfs-s3-config
   nats:
     persistence:
       enabled: true
