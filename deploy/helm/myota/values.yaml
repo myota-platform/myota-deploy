@@ -163,6 +163,8 @@ seaweedfs:
   storageSize: 20Gi
   storageClassName: ""
   metricsPort: 9324
+  configSecretName: ""
+  configSecretKey: s3-config.json
 geodataPipeline:
   enabled: true
   locationEnrichment:
